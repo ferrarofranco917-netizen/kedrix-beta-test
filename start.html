@@ -99,38 +99,32 @@ document.getElementById('btn').addEventListener('click', async () => {
     const text = await res.text();
     console.log("KEDRIX RAW RESPONSE:", text);
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      throw new Error('Risposta non valida dal server');
-    }
+    const data = JSON.parse(text);
 
     if (!data.ok) throw new Error(data.error);
 
-    // 🔥 SALVATAGGIO
+    // 🔥 SALVATAGGIO COMPLETO (CRITICO)
+    localStorage.setItem("tester_id", data.tester_id);
+    localStorage.setItem("license_email", data.email);
+    localStorage.setItem("license_expires_at", data.expiry);
+
     localStorage.setItem("kedrix_beta", "active");
-    localStorage.setItem("kedrix_start_seeded", "true");
     localStorage.setItem("kedrix_tester_id", data.tester_id);
     localStorage.setItem("kedrix_email", data.email);
     localStorage.setItem("kedrix_expiry", data.expiry);
-    localStorage.setItem("tester_id", data.tester_id);
-    localStorage.setItem("license_email", data.email);
-    localStorage.setItem("license_expires_at", data.expiry || "");
-    localStorage.setItem("kedrix_license_status", "active");
-    localStorage.setItem("kedrix_license_type", "beta");
-    localStorage.setItem("kedrix_license_expires_at", data.expiry || "");
-    localStorage.setItem("bw-license-valid", "valid");
-    localStorage.setItem("bw-license-expiry", data.expiry || "");
 
-    // 🔥 REDIRECT
-    const params = new URLSearchParams({
-      tester_id: data.tester_id,
-      email: data.email,
-      expiry: data.expiry
-    });
+    console.log("KEDRIX STORAGE SET:", data);
 
-    window.location.href = "https://beta.kedrix.tech/?" + params.toString();
+    // 🔥 aspetta 200ms per sicurezza
+    setTimeout(() => {
+      const params = new URLSearchParams({
+        tester_id: data.tester_id,
+        email: data.email,
+        expiry: data.expiry
+      });
+
+      window.location.href = "https://beta.kedrix.tech/?" + params.toString();
+    }, 200);
 
   } catch (err) {
     alert("Errore: " + err.message);
