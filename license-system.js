@@ -18,9 +18,13 @@ class KedrixLicense {
             message: 'kedrix_license_message'
         };
 
+        const urlCredentials = this.readUrlCredentials();
+        const storedEmail = localStorage.getItem(this.storage.email) || localStorage.getItem('kedrix_email') || '';
+        const storedTesterId = localStorage.getItem(this.storage.testerId) || localStorage.getItem('kedrix_tester_id') || '';
+
         this.state = {
-            email: localStorage.getItem(this.storage.email) || '',
-            testerId: localStorage.getItem(this.storage.testerId) || '',
+            email: urlCredentials.email || storedEmail,
+            testerId: urlCredentials.testerId || storedTesterId,
             role: localStorage.getItem(this.storage.role) || 'guest',
             status: localStorage.getItem(this.storage.status) || 'missing',
             type: localStorage.getItem(this.storage.type) || 'beta',
@@ -70,13 +74,65 @@ class KedrixLicense {
         return '';
     }
 
+    readUrlCredentials() {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const read = (...keys) => {
+                for (const key of keys) {
+                    const value = params.get(key);
+                    if (value && String(value).trim()) return String(value).trim();
+                }
+                return '';
+            };
+            return {
+                email: read('email', 'license_email'),
+                testerId: read('tester_id', 'testerId', 'license_key', 'licenseKey')
+            };
+        } catch (_error) {
+            return { email: '', testerId: '' };
+        }
+    }
+
+    hydrateStateFromUrl() {
+        const credentials = this.readUrlCredentials();
+        if (!credentials.email && !credentials.testerId) return false;
+
+        this.updateState({
+            email: credentials.email || this.state.email || '',
+            testerId: credentials.testerId || this.state.testerId || '',
+            checkedAt: this.state.checkedAt || '',
+            message: this.state.message || ''
+        });
+
+        try {
+            if (credentials.email) localStorage.setItem('kedrix_email', credentials.email);
+            if (credentials.testerId) localStorage.setItem('kedrix_tester_id', credentials.testerId);
+        } catch (_error) {}
+
+        return true;
+    }
+
+    clearAccessParamsFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            let changed = false;
+            ['email', 'license_email', 'tester_id', 'testerId', 'license_key', 'licenseKey'].forEach((key) => {
+                if (url.searchParams.has(key)) {
+                    url.searchParams.delete(key);
+                    changed = true;
+                }
+            });
+            if (changed) {
+                const next = `${url.pathname}${url.search}${url.hash}`;
+                window.history.replaceState({}, document.title, next || window.location.pathname);
+            }
+        } catch (_error) {}
+    }
+
     async bootstrap() {
         this.injectGateStyles();
         this.renderGate();
-
-        if (this.tryTrustSeededStartAccess()) {
-            return this.state;
-        }
+        this.hydrateStateFromUrl();
 
         if (!this.state.email) {
             this.showGate('missing');
@@ -93,56 +149,6 @@ class KedrixLicense {
 
     async whenReady() {
         return this.bootstrapPromise;
-    }
-
-    readSeededStartAccess() {
-        const seeded = localStorage.getItem('kedrix_start_seeded') === 'true' || localStorage.getItem('kedrix_beta') === 'active';
-        const email = String(localStorage.getItem(this.storage.email) || localStorage.getItem('kedrix_email') || '').trim().toLowerCase();
-        const testerId = String(localStorage.getItem(this.storage.testerId) || localStorage.getItem('kedrix_tester_id') || '').trim();
-        const expiresAt = String(localStorage.getItem(this.storage.expiresAt) || localStorage.getItem('kedrix_expiry') || '').trim();
-        const status = String(localStorage.getItem(this.storage.status) || 'active').trim().toLowerCase() || 'active';
-        return { seeded, email, testerId, expiresAt, status };
-    }
-
-    isSeededStartAccessValid(seed) {
-        if (!seed || !seed.seeded || !seed.email || !seed.testerId) return false;
-        if (!seed.expiresAt) return true;
-        const expiry = new Date(seed.expiresAt);
-        if (Number.isNaN(expiry.getTime())) return false;
-        return expiry.getTime() > Date.now();
-    }
-
-    tryTrustSeededStartAccess() {
-        const seed = this.readSeededStartAccess();
-        if (!this.isSeededStartAccessValid(seed)) return false;
-
-        this.updateState({
-            email: seed.email,
-            testerId: seed.testerId,
-            role: 'tester',
-            status: seed.status || 'active',
-            type: 'beta',
-            batch: this.state.batch || '',
-            expiresAt: seed.expiresAt || this.state.expiresAt || '',
-            checkedAt: new Date().toISOString(),
-            message: 'Accesso beta attivo.',
-            accessAllowed: true
-        });
-
-        if (window.KedrixSessionManager && window.KedrixSessionManager.refresh) {
-            window.KedrixSessionManager.refresh();
-        }
-        if (window.KedrixLicenseGuard && window.KedrixLicenseGuard.sealLicense) {
-            window.KedrixLicenseGuard.sealLicense({
-                email: seed.email,
-                testerId: seed.testerId,
-                status: seed.status || 'active',
-                expiresAt: seed.expiresAt || ''
-            });
-        }
-        this.syncLegacyPremiumFlags(true);
-        this.hideGate();
-        return true;
     }
 
     async verifyRemote({ email, testerId, silent = false } = {}) {
@@ -199,6 +205,7 @@ class KedrixLicense {
             });
 
             if (accessAllowed) {
+                this.clearAccessParamsFromUrl();
                 if (window.KedrixSessionManager && window.KedrixSessionManager.refresh) {
                     window.KedrixSessionManager.refresh();
                 }
