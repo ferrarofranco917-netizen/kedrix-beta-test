@@ -1041,11 +1041,45 @@
       (function () {
         try {
           const params = new URLSearchParams(window.location.search || '');
-          const testerId = params.get('testerId') || params.get('userId') || params.get('id') || '';
+          const testerId = (
+            params.get('tester_id') ||
+            params.get('testerId') ||
+            params.get('license_key') ||
+            params.get('licenseKey') ||
+            params.get('userId') ||
+            params.get('id') ||
+            ''
+          ).trim();
           const email = (params.get('email') || '').trim().toLowerCase();
+          const expiry = (params.get('expiry') || params.get('expires_at') || '').trim();
+          const status = (params.get('status') || 'active').trim().toLowerCase();
+          const seededFromStart = !!(testerId && email);
 
-          if (testerId) localStorage.setItem('tester_id', testerId);
-          if (email) localStorage.setItem('license_email', email);
+          if (testerId) {
+            localStorage.setItem('tester_id', testerId);
+            localStorage.setItem('kedrix_tester_id', testerId);
+          }
+          if (email) {
+            localStorage.setItem('license_email', email);
+            localStorage.setItem('kedrix_email', email);
+          }
+          if (expiry) {
+            localStorage.setItem('kedrix_license_expires_at', expiry);
+            localStorage.setItem('kedrix_expiry', expiry);
+          }
+          if (seededFromStart) {
+            localStorage.setItem('kedrix_beta', 'active');
+            localStorage.setItem('kedrix_start_seeded', 'true');
+            localStorage.setItem('kedrix_license_status', status || 'active');
+            localStorage.setItem('kedrix_license_type', 'beta');
+            localStorage.setItem('bw-license-valid', 'valid');
+            localStorage.setItem('bw-license-expiry', expiry || '');
+          }
+
+          if (seededFromStart) {
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
         } catch (err) {
           console.warn('[Kedrix] Beta bootstrap params failed', err);
         }

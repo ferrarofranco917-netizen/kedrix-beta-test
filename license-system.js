@@ -74,6 +74,10 @@ class KedrixLicense {
         this.injectGateStyles();
         this.renderGate();
 
+        if (this.tryTrustSeededStartAccess()) {
+            return this.state;
+        }
+
         if (!this.state.email) {
             this.showGate('missing');
             return this.state;
@@ -89,6 +93,56 @@ class KedrixLicense {
 
     async whenReady() {
         return this.bootstrapPromise;
+    }
+
+    readSeededStartAccess() {
+        const seeded = localStorage.getItem('kedrix_start_seeded') === 'true' || localStorage.getItem('kedrix_beta') === 'active';
+        const email = String(localStorage.getItem(this.storage.email) || localStorage.getItem('kedrix_email') || '').trim().toLowerCase();
+        const testerId = String(localStorage.getItem(this.storage.testerId) || localStorage.getItem('kedrix_tester_id') || '').trim();
+        const expiresAt = String(localStorage.getItem(this.storage.expiresAt) || localStorage.getItem('kedrix_expiry') || '').trim();
+        const status = String(localStorage.getItem(this.storage.status) || 'active').trim().toLowerCase() || 'active';
+        return { seeded, email, testerId, expiresAt, status };
+    }
+
+    isSeededStartAccessValid(seed) {
+        if (!seed || !seed.seeded || !seed.email || !seed.testerId) return false;
+        if (!seed.expiresAt) return true;
+        const expiry = new Date(seed.expiresAt);
+        if (Number.isNaN(expiry.getTime())) return false;
+        return expiry.getTime() > Date.now();
+    }
+
+    tryTrustSeededStartAccess() {
+        const seed = this.readSeededStartAccess();
+        if (!this.isSeededStartAccessValid(seed)) return false;
+
+        this.updateState({
+            email: seed.email,
+            testerId: seed.testerId,
+            role: 'tester',
+            status: seed.status || 'active',
+            type: 'beta',
+            batch: this.state.batch || '',
+            expiresAt: seed.expiresAt || this.state.expiresAt || '',
+            checkedAt: new Date().toISOString(),
+            message: 'Accesso beta attivo.',
+            accessAllowed: true
+        });
+
+        if (window.KedrixSessionManager && window.KedrixSessionManager.refresh) {
+            window.KedrixSessionManager.refresh();
+        }
+        if (window.KedrixLicenseGuard && window.KedrixLicenseGuard.sealLicense) {
+            window.KedrixLicenseGuard.sealLicense({
+                email: seed.email,
+                testerId: seed.testerId,
+                status: seed.status || 'active',
+                expiresAt: seed.expiresAt || ''
+            });
+        }
+        this.syncLegacyPremiumFlags(true);
+        this.hideGate();
+        return true;
     }
 
     async verifyRemote({ email, testerId, silent = false } = {}) {
