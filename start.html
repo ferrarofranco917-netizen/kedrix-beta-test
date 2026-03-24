@@ -70,7 +70,7 @@
 <script>
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbym1hNeSD8iy8Uw7qLidjoslm92n15xrZDXRLVWEZvicQGPBVYb6ENzoy1LgFN1w46QDA/exec";
 
-document.getElementById('btn').addEventListener('click', () => {
+document.getElementById('btn').addEventListener('click', async () => {
   const name = document.getElementById('name').value.trim();
   const email = document.getElementById('email').value.trim();
 
@@ -83,29 +83,55 @@ document.getElementById('btn').addEventListener('click', () => {
   btn.classList.add('loading');
   btn.innerText = "Accesso in corso...";
 
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = ENDPOINT;
-  form.style.display = "none";
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        source: "start-page"
+      })
+    });
 
-  const inputName = document.createElement("input");
-  inputName.name = "name";
-  inputName.value = name;
+    const text = await res.text();
+    console.log("RAW:", text);
 
-  const inputEmail = document.createElement("input");
-  inputEmail.name = "email";
-  inputEmail.value = email;
+    const data = JSON.parse(text);
 
-  const inputSource = document.createElement("input");
-  inputSource.name = "source";
-  inputSource.value = "start-page";
+    if (!data.ok) throw new Error(data.error);
 
-  form.appendChild(inputName);
-  form.appendChild(inputEmail);
-  form.appendChild(inputSource);
+    // 🔥 SALVATAGGIO CORRETTO
+    localStorage.setItem("tester_id", data.tester_id);
+    localStorage.setItem("license_email", data.email);
+    localStorage.setItem("license_expires_at", data.expiry);
 
-  document.body.appendChild(form);
-  form.submit();
+    localStorage.setItem("kedrix_beta", "active");
+    localStorage.setItem("kedrix_tester_id", data.tester_id);
+    localStorage.setItem("kedrix_email", data.email);
+    localStorage.setItem("kedrix_expiry", data.expiry);
+
+    console.log("STORAGE OK");
+
+    // 🔥 REDIRECT SICURO
+    setTimeout(() => {
+      const params = new URLSearchParams({
+        tester_id: data.tester_id,
+        email: data.email,
+        expiry: data.expiry
+      });
+
+      window.location.href = "https://beta.kedrix.tech/?" + params.toString();
+    }, 150);
+
+  } catch (err) {
+    console.error(err);
+    alert("Errore: " + err.message);
+    btn.classList.remove('loading');
+    btn.innerText = "Entra";
+  }
 });
 </script>
 
