@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kedrix — Start now</title>
-  <meta name="description" content="Start using Kedrix in seconds." />
+  <title>Kedrix — Accesso beta rapido</title>
+  <meta name="description" content="Entra in Kedrix in pochi secondi." />
   <style>
     :root {
       --bg: #07111f;
       --bg-2: #0b1730;
-      --panel: rgba(13, 24, 46, 0.76);
+      --panel: rgba(13, 24, 46, 0.78);
       --panel-border: rgba(110, 168, 255, 0.14);
       --text: #f4f8ff;
       --muted: #93a3bd;
@@ -21,7 +21,6 @@
       --success: #92ffcf;
       --danger: #ff9b9b;
     }
-
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body {
@@ -36,7 +35,6 @@
       place-items: center;
       padding: 24px;
     }
-
     .shell {
       width: min(100%, 1040px);
       display: grid;
@@ -44,11 +42,7 @@
       gap: 28px;
       align-items: center;
     }
-
-    .hero {
-      padding: 24px 6px;
-    }
-
+    .hero { padding: 24px 6px; }
     .eyebrow {
       display: inline-flex;
       align-items: center;
@@ -59,7 +53,6 @@
       text-transform: uppercase;
       margin-bottom: 18px;
     }
-
     .dot {
       width: 8px;
       height: 8px;
@@ -67,7 +60,6 @@
       background: linear-gradient(180deg, var(--accent-2), var(--accent));
       box-shadow: 0 0 18px rgba(78, 161, 255, 0.8);
     }
-
     h1 {
       margin: 0 0 16px;
       font-size: clamp(38px, 6vw, 64px);
@@ -75,7 +67,6 @@
       letter-spacing: -0.045em;
       max-width: 620px;
     }
-
     .lead {
       margin: 0 0 28px;
       color: var(--muted);
@@ -83,7 +74,6 @@
       line-height: 1.6;
       max-width: 520px;
     }
-
     .bullets {
       display: flex;
       flex-wrap: wrap;
@@ -92,7 +82,6 @@
       padding: 0;
       list-style: none;
     }
-
     .bullets li {
       padding: 10px 14px;
       border-radius: 999px;
@@ -102,7 +91,6 @@
       font-size: 14px;
       white-space: nowrap;
     }
-
     .panel {
       background: var(--panel);
       border: 1px solid var(--panel-border);
@@ -112,100 +100,38 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
     }
-
-    .card-title {
-      margin: 0 0 8px;
-      font-size: 24px;
-      letter-spacing: -0.03em;
-    }
-
-    .card-subtitle {
-      margin: 0 0 22px;
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 15px;
-    }
-
-    form {
-      display: grid;
-      gap: 14px;
-    }
-
-    .field {
-      display: grid;
-      gap: 8px;
-    }
-
-    label {
-      font-size: 13px;
-      color: #d6e4ff;
-      font-weight: 600;
-    }
-
+    .card-title { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.03em; }
+    .card-subtitle { margin: 0 0 22px; color: var(--muted); line-height: 1.55; font-size: 15px; }
+    form { display: grid; gap: 14px; }
+    .field { display: grid; gap: 8px; }
+    label { font-size: 13px; color: #d6e4ff; font-weight: 600; }
     input {
-      width: 100%;
-      border: 1px solid var(--input-border);
-      background: var(--input);
-      color: var(--text);
-      border-radius: 14px;
-      padding: 14px 16px;
-      font-size: 15px;
-      outline: none;
+      width: 100%; border: 1px solid var(--input-border); background: var(--input); color: var(--text);
+      border-radius: 14px; padding: 14px 16px; font-size: 15px; outline: none;
       transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
     }
-
     input::placeholder { color: #7183a2; }
     input:focus {
       border-color: rgba(78, 161, 255, 0.55);
       box-shadow: 0 0 0 4px rgba(78, 161, 255, 0.12);
       background: rgba(255, 255, 255, 0.075);
     }
-
     button {
-      margin-top: 4px;
-      border: 0;
-      border-radius: 14px;
-      padding: 15px 18px;
-      background: linear-gradient(180deg, var(--accent-2), var(--accent));
-      color: #041120;
-      font-weight: 800;
-      font-size: 15px;
-      cursor: pointer;
+      margin-top: 4px; border: 0; border-radius: 14px; padding: 15px 18px;
+      background: linear-gradient(180deg, var(--accent-2), var(--accent)); color: #041120;
+      font-weight: 800; font-size: 15px; cursor: pointer;
       transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
     }
-
     button:hover { filter: brightness(1.04); transform: translateY(-1px); }
     button:disabled { opacity: 0.65; cursor: wait; transform: none; }
-
-    .micro {
-      margin: 14px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .status {
-      min-height: 22px;
-      font-size: 13px;
-      margin-top: 6px;
-    }
-
+    .micro { margin: 14px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .status { min-height: 44px; font-size: 13px; margin-top: 6px; line-height: 1.55; }
     .status[data-state="error"] { color: var(--danger); }
     .status[data-state="loading"] { color: var(--accent-2); }
     .status[data-state="ok"] { color: var(--success); }
-
-    .tiny {
-      margin-top: 18px;
-      color: #8094b4;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
+    .tiny { margin-top: 18px; color: #8094b4; font-size: 12px; line-height: 1.5; }
     @media (max-width: 900px) {
-      .shell {
-        grid-template-columns: 1fr;
-        gap: 18px;
-      }
+      .shell { grid-template-columns: 1fr; gap: 18px; }
       .hero { padding: 0; }
       h1 { font-size: clamp(34px, 12vw, 48px); }
       .lead { font-size: 16px; }
@@ -216,142 +142,177 @@
   <main class="shell">
     <section class="hero" aria-label="Kedrix intro">
       <div class="eyebrow"><span class="dot"></span> Kedrix private beta</div>
-      <h1>Know how much you can spend. Every day.</h1>
+      <h1>Entra in Kedrix in meno di 30 secondi.</h1>
       <p class="lead">
-        Fast access, zero friction. Enter your details and go straight into Kedrix.
+        Inserisci nome ed email. Generiamo il tuo accesso e ti portiamo direttamente nell'app.
       </p>
       <ul class="bullets" aria-label="Key benefits">
-        <li>No bank connection</li>
-        <li>No data selling</li>
-        <li>Start in under 30 seconds</li>
+        <li>Nessun collegamento banca</li>
+        <li>Nessuna vendita dati</li>
+        <li>Accesso immediato</li>
       </ul>
     </section>
 
     <section class="panel" aria-label="Beta access form">
-      <h2 class="card-title">Start now</h2>
+      <h2 class="card-title">Accesso rapido</h2>
       <p class="card-subtitle">
-        We’ll generate your access and open the app immediately.
+        Nessun passaggio intermedio: creiamo il tuo profilo e apriamo subito Kedrix.
       </p>
 
       <form id="accessForm" novalidate>
         <div class="field">
-          <label for="name">Name</label>
-          <input id="name" name="name" type="text" placeholder="Your name" autocomplete="name" required />
+          <label for="name">Nome</label>
+          <input id="name" name="name" type="text" placeholder="Il tuo nome" autocomplete="name" required />
         </div>
 
         <div class="field">
           <label for="email">Email</label>
-          <input id="email" name="email" type="email" placeholder="name@example.com" autocomplete="email" required />
+          <input id="email" name="email" type="email" placeholder="nome@email.com" autocomplete="email" required />
         </div>
 
-        <button id="submitBtn" type="submit">Enter Kedrix</button>
+        <button id="submitBtn" type="submit">Entra in Kedrix</button>
         <div id="status" class="status" aria-live="polite"></div>
       </form>
 
-      <p class="micro">Takes less than 30 seconds.</p>
-      <p class="tiny">
-        Configure the script URL and redirect URL in the script block before deploying.
-      </p>
+      <p class="micro">Può volerci qualche secondo la prima volta.</p>
+      <p class="tiny">Dopo l'accesso troverai direttamente Kedrix aperto, con suggerimento di installazione su iPhone, Android e PC se disponibile.</p>
     </section>
   </main>
 
   <script>
     const CONFIG = {
-      APPS_SCRIPT_URL: 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEBAPP_URL_HERE',
-      APP_URL: 'https://beta.kedrix.tech',
-      REDIRECT_PARAM_CANDIDATES: ['id', 'userId', 'testerId'],
+      APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec',
+      APP_URL: './',
+      REQUEST_TIMEOUT_MS: 15000,
+      REDIRECT_DELAY_MS: 500,
     };
 
     const form = document.getElementById('accessForm');
     const button = document.getElementById('submitBtn');
     const statusEl = document.getElementById('status');
+    const DEFAULT_BUTTON_LABEL = button.textContent;
 
     function setStatus(message, state = '') {
       statusEl.textContent = message;
       statusEl.dataset.state = state;
     }
 
-    function getReturnedId(payload) {
-      if (!payload || typeof payload !== 'object') return null;
-      for (const key of CONFIG.REDIRECT_PARAM_CANDIDATES) {
-        if (payload[key]) return payload[key];
-      }
-      if (payload.data && typeof payload.data === 'object') {
-        for (const key of CONFIG.REDIRECT_PARAM_CANDIDATES) {
-          if (payload.data[key]) return payload.data[key];
-        }
-      }
-      return null;
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
-    function buildRedirectUrl(id) {
-      const url = new URL(CONFIG.APP_URL);
-      url.searchParams.set('id', id);
+    function normalizePayload(payload) {
+      if (!payload || typeof payload !== 'object') return {};
+      return payload.data && typeof payload.data === 'object' ? payload.data : payload;
+    }
+
+    function getReturnedId(payload) {
+      const data = normalizePayload(payload);
+      return data.tester_id || data.testerId || data.id || data.userId || '';
+    }
+
+    function persistAccess(payload, fallbackEmail) {
+      const data = normalizePayload(payload);
+      const testerId = getReturnedId(data);
+      const email = (data.email || fallbackEmail || '').trim().toLowerCase();
+      const expiresAt = data.expires_at || data.expiresAt || '';
+      const licenseType = data.license_type || data.licenseType || 'beta';
+      const status = data.license_status || data.status || (testerId ? 'active' : 'pending');
+      const checkedAt = new Date().toISOString();
+
+      if (email) localStorage.setItem('license_email', email);
+      if (testerId) {
+        localStorage.setItem('tester_id', testerId);
+        localStorage.setItem('kedrix_session_id', testerId);
+      }
+      localStorage.setItem('kedrix_role', 'tester');
+      localStorage.setItem('kedrix_license_status', status);
+      localStorage.setItem('kedrix_license_type', licenseType);
+      localStorage.setItem('kedrix_license_checked_at', checkedAt);
+      if (expiresAt) localStorage.setItem('kedrix_license_expires_at', expiresAt);
+      if (data.message) localStorage.setItem('kedrix_license_message', data.message);
+      return { testerId, email };
+    }
+
+    function buildRedirectUrl(testerId) {
+      const url = new URL(CONFIG.APP_URL, window.location.href);
+      if (testerId) url.searchParams.set('id', testerId);
+      url.searchParams.set('source', 'quick-access');
       return url.toString();
     }
 
-    function validateEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    function withTimeout(promise, timeoutMs) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+      ]);
     }
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
 
       const name = form.name.value.trim();
-      const email = form.email.value.trim();
+      const email = form.email.value.trim().toLowerCase();
 
       if (!name) {
-        setStatus('Enter your name.', 'error');
+        setStatus('Inserisci il tuo nome.', 'error');
         form.name.focus();
         return;
       }
 
       if (!validateEmail(email)) {
-        setStatus('Enter a valid email.', 'error');
+        setStatus('Inserisci un'email valida.', 'error');
         form.email.focus();
         return;
       }
 
-      if (!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL.includes('PASTE_YOUR')) {
-        setStatus('Missing Apps Script URL in start.html.', 'error');
-        return;
-      }
-
       button.disabled = true;
-      setStatus('Creating your access…', 'loading');
+      button.textContent = 'Creazione accesso...';
+      setStatus('Sto creando il tuo accesso. Attendi qualche secondo, poi entrerai direttamente in Kedrix.', 'loading');
 
       try {
-        const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+        const fetchPromise = fetch(CONFIG.APPS_SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ name, email, source: 'start-landing' })
+          body: JSON.stringify({
+            action: 'register_beta_request',
+            name,
+            email,
+            source: 'kedrix-start'
+          })
         });
 
+        const response = await withTimeout(fetchPromise, CONFIG.REQUEST_TIMEOUT_MS);
         const rawText = await response.text();
-        let payload = null;
+        let payload = {};
 
         try {
-          payload = JSON.parse(rawText);
+          payload = rawText ? JSON.parse(rawText) : {};
         } catch {
-          throw new Error('Invalid JSON response from Apps Script');
+          throw new Error('Risposta non valida dal server');
         }
 
         if (!response.ok) {
-          throw new Error(payload?.error || 'Request failed');
+          throw new Error(payload?.error || 'Richiesta non completata');
         }
 
-        const returnedId = getReturnedId(payload);
-        if (!returnedId) {
-          throw new Error('No tester ID returned');
+        const { testerId } = persistAccess(payload, email);
+        if (!testerId) {
+          throw new Error('Tester ID non ricevuto');
         }
 
-        setStatus('Access ready. Opening Kedrix…', 'ok');
-        window.location.href = buildRedirectUrl(returnedId);
+        setStatus('Accesso creato. Ti sto portando dentro Kedrix…', 'ok');
+        window.setTimeout(() => {
+          window.location.href = buildRedirectUrl(testerId);
+        }, CONFIG.REDIRECT_DELAY_MS);
       } catch (error) {
         console.error(error);
-        setStatus(error.message || 'Something went wrong. Try again.', 'error');
-      } finally {
+        const message = error && error.message === 'timeout'
+          ? 'Il server sta impiegando troppo tempo. Riprova tra qualche secondo.'
+          : (error.message || 'Qualcosa è andato storto. Riprova.');
+        setStatus(message, 'error');
         button.disabled = false;
+        button.textContent = DEFAULT_BUTTON_LABEL;
       }
     });
   </script>
