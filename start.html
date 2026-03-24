@@ -83,10 +83,10 @@ document.getElementById('btn').addEventListener('click', () => {
   btn.classList.add('loading');
   btn.innerText = "Accesso in corso...";
 
-  // 🔥 crea form invisibile
   const form = document.createElement("form");
   form.method = "POST";
   form.action = ENDPOINT;
+  form.style.display = "none";
 
   const inputName = document.createElement("input");
   inputName.name = "name";
@@ -105,8 +105,6 @@ document.getElementById('btn').addEventListener('click', () => {
   form.appendChild(inputSource);
 
   document.body.appendChild(form);
-
-  // submit diretto → niente CORS
   form.submit();
 });
 </script>
