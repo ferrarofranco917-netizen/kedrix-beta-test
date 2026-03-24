@@ -97,6 +97,7 @@ document.getElementById('btn').addEventListener('click', async () => {
     });
 
     const text = await res.text();
+    console.log("KEDRIX RAW RESPONSE:", text);
 
     let data;
     try {
@@ -115,6 +116,7 @@ document.getElementById('btn').addEventListener('click', async () => {
     localStorage.setItem("kedrix_expiry", data.expiry);
     localStorage.setItem("tester_id", data.tester_id);
     localStorage.setItem("license_email", data.email);
+    localStorage.setItem("license_expires_at", data.expiry || "");
     localStorage.setItem("kedrix_license_status", "active");
     localStorage.setItem("kedrix_license_type", "beta");
     localStorage.setItem("kedrix_license_expires_at", data.expiry || "");
