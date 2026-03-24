@@ -37,6 +37,7 @@
       background: #1a2233;
       color: white;
       font-size: 14px;
+      box-sizing: border-box;
     }
 
     button {
@@ -84,51 +85,38 @@ document.getElementById('btn').addEventListener('click', async () => {
   btn.innerText = "Accesso in corso...";
 
   try {
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        source: "start-page"
-      })
-    });
-
+    const url = `${ENDPOINT}?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&source=start-page`;
+    const res = await fetch(url, { method: "GET" });
     const text = await res.text();
     console.log("RAW:", text);
 
     const data = JSON.parse(text);
 
-    if (!data.ok) throw new Error(data.error);
+    if (!data.ok) throw new Error(data.error || "Registrazione non riuscita.");
 
-    // 🔥 SALVATAGGIO CORRETTO
     localStorage.setItem("tester_id", data.tester_id);
     localStorage.setItem("license_email", data.email);
-    localStorage.setItem("license_expires_at", data.expiry);
+    localStorage.setItem("license_expires_at", data.expiry || "");
 
     localStorage.setItem("kedrix_beta", "active");
     localStorage.setItem("kedrix_tester_id", data.tester_id);
     localStorage.setItem("kedrix_email", data.email);
-    localStorage.setItem("kedrix_expiry", data.expiry);
+    localStorage.setItem("kedrix_expiry", data.expiry || "");
+    localStorage.setItem("kedrix_start_seeded", "true");
 
-    console.log("STORAGE OK");
+    console.log("STORAGE OK", data);
 
-    // 🔥 REDIRECT SICURO
-    setTimeout(() => {
-      const params = new URLSearchParams({
-        tester_id: data.tester_id,
-        email: data.email,
-        expiry: data.expiry
-      });
+    const params = new URLSearchParams({
+      tester_id: data.tester_id,
+      email: data.email,
+      expiry: data.expiry || ""
+    });
 
-      window.location.href = "https://beta.kedrix.tech/?" + params.toString();
-    }, 150);
+    window.location.href = "https://beta.kedrix.tech/?" + params.toString();
 
   } catch (err) {
     console.error(err);
-    alert("Errore: " + err.message);
+    alert("Errore: " + (err && err.message ? err.message : "Risposta non valida dal server"));
     btn.classList.remove('loading');
     btn.innerText = "Entra";
   }
