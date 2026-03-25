@@ -3655,84 +3655,20 @@ detectCsvDelimiter(text, fallback = ',') {
     }
 
 
- applyLanguage() {
-        console.log('🌐 Cambio lingua a:', this.data.language);
-        // Applica traduzioni a tutti gli elementi con data-i18n (testi, placeholder, aria-label)
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (!key) return;
-            const val = this.t(key);
-            const tag = (el.tagName || '').toUpperCase();
-
-            // placeholder per input/textarea
-            if ((tag === 'INPUT' || tag === 'TEXTAREA') && el.hasAttribute('placeholder')) {
-                el.setAttribute('placeholder', val);
-                return;
-            }
-
-           // Se serve HTML (es. <strong>, <br>), abilitalo solo dove dichiarato
-if (el.hasAttribute('data-i18n-html')) {
-    el.innerHTML = val;
-} else {
-    el.textContent = val;
+     if (vars && typeof vars === 'object') {
+        for (const [k, v] of Object.entries(vars)) {
+            str = String(str).replaceAll(`{${k}}`, String(v));
+        }
+    }
+    return str;
 }
-        });
 
-        const runtimeLang = this.getRuntimeLanguage();
-        const languageSelect = document.getElementById('languageSelect');
-        if (languageSelect) languageSelect.value = runtimeLang;
-        const subtitleEl = document.querySelector('.subtitle');
-        if (subtitleEl) subtitleEl.textContent = this.t('subtitle');
-        if (window.KedrixI18n && typeof window.KedrixI18n.setDocumentLanguage === 'function') {
-            window.KedrixI18n.setDocumentLanguage(runtimeLang);
-            if (typeof window.KedrixI18n.applyBootstrapTranslations === 'function') {
-                window.KedrixI18n.applyBootstrapTranslations(document, runtimeLang);
-            }
-        } else {
-            document.documentElement.lang = runtimeLang;
-        }
-        document.title = this.t('docTitle');
-        
-        const summaryLabels = document.querySelectorAll('.summary-label');
-        if (summaryLabels.length >= 3) {
-            summaryLabels[0].textContent = this.t('budget');
-            summaryLabels[1].textContent = this.t('remaining');
-            summaryLabels[2].textContent = this.t('days');
-        }
-        
-        const headingMap = {
-            incomesTitle: 'incomes',
-            fixedTitle: 'fixed',
-            variableTitle: 'variable',
-            chartTitle: 'chart',
-            wiseForecastTitle: 'wiseForecastTitle',
-            wiseScoreHomeTitle: null,
-            calendarToolsTitle: 'calendarToolsTitle'
-        };
-        Object.entries(headingMap).forEach(([id, key]) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            if (id === 'wiseScoreHomeTitle') {
-                el.textContent = 'WiseScore™';
-                return;
-            }
-            if (key) el.textContent = this.t(key);
-        });
-        
-        const incomeBadge = document.getElementById('badge');
-        if (incomeBadge) incomeBadge.textContent = this.t('badge');
+applyLanguage(lang) {
+    ...
+}
 
-        const setText = (id, value, useHtml = false) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            if (useHtml) el.innerHTML = value;
-            else el.textContent = value;
-        };
-        const setPlaceholder = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) el.placeholder = value;
-        };
-
+const betaUi = {
+    it: {
         const betaUi = {
             it: {
                 settingsTitle: 'Build beta',
