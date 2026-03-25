@@ -3672,6 +3672,34 @@ applyLanguage(lang) {
         el.placeholder = value;
     };
 
+    const settingLabels = document.querySelectorAll('.setting-item label') || [];
+    if (settingLabels && settingLabels.length >= 3) {
+        settingLabels[0].innerHTML = this.t('thresholdLabel');
+        settingLabels[1].innerHTML = this.t('languageLabel');
+        settingLabels[2].innerHTML = this.t('backupLabel');
+    }
+
+    const suggestionChips = document.querySelectorAll('.suggestion-chip') || [];
+    if (suggestionChips && suggestionChips.length >= 4) {
+        suggestionChips[0].textContent = this.t('suggestion1');
+        suggestionChips[1].textContent = this.t('suggestion2');
+        suggestionChips[2].textContent = this.t('suggestion3');
+        suggestionChips[3].textContent = this.t('suggestion4');
+    }
+
+    const delimiterSelect = document.getElementById('csvDelimiter');
+    if (delimiterSelect && delimiterSelect.options && delimiterSelect.options.length >= 2) {
+        delimiterSelect.options[0].text = this.data.language === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
+        delimiterSelect.options[1].text = this.data.language === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
+    }
+
+    const separatorSelect = document.getElementById('csvSeparator');
+    if (separatorSelect && separatorSelect.options && separatorSelect.options.length >= 3) {
+        separatorSelect.options[0].text = this.t('csvComma');
+        separatorSelect.options[1].text = this.t('csvSemicolon');
+        separatorSelect.options[2].text = this.t('csvTab');
+    }
+
     const expenseCategory = document.getElementById('expenseCategory');
     if (expenseCategory && expenseCategory.options) {
         for (let i = 0; i < expenseCategory.options.length; i++) {
@@ -3690,50 +3718,50 @@ applyLanguage(lang) {
 
     const betaUi = {
         it: {
-                settingsTitle: 'Build beta',
-                settingsText: 'Build controllata per tester. Accesso verificato tramite licenza beta e attivazione remota.',
-                feedback: 'Invia feedback',
-                footerBuild: 'Kedrix — BETA v1 · Candidata beta',
-                accessKicker: 'Kedrix — Accesso beta',
-                accessTitle: 'Verifica accesso beta',
-                accessText: 'Questa build è riservata ai tester autorizzati. Inserisci l’email approvata per continuare.',
-                accessLabel: 'Email autorizzata',
-                accessSubmit: 'Verifica accesso'
-            },
-            en: {
-                settingsTitle: 'Beta build',
-                settingsText: 'Controlled build for testers. Access is verified through beta licensing and remote activation.',
-                feedback: 'Send feedback',
-                footerBuild: 'Kedrix — BETA v1 · Beta candidate',
-                accessKicker: 'Kedrix — Beta Access',
-                accessTitle: 'Verify beta access',
-                accessText: 'This build is reserved for authorized testers. Enter the approved email to continue.',
-                accessLabel: 'Approved email',
-                accessSubmit: 'Verify access'
-            },
-            es: {
-                settingsTitle: 'Versión beta',
-                settingsText: 'Build controlada para testers. El acceso se verifica mediante licencia beta y activación remota.',
-                feedback: 'Enviar feedback',
-                footerBuild: 'Kedrix — BETA v1 · Candidata beta',
-                accessKicker: 'Kedrix — Acceso beta',
-                accessTitle: 'Verifica acceso beta',
-                accessText: 'Esta build está reservada para testers autorizados. Introduce el correo aprobado para continuar.',
-                accessLabel: 'Correo autorizado',
-                accessSubmit: 'Verificar acceso'
-            },
-            fr: {
-                settingsTitle: 'Version bêta',
-                settingsText: 'Build contrôlée pour les testeurs. L’accès est vérifié via licence bêta et activation à distance.',
-                feedback: 'Envoyer un feedback',
-                footerBuild: 'Kedrix — BETA v1 · Candidate bêta',
-                accessKicker: 'Kedrix — Accès bêta',
-                accessTitle: 'Vérifier l’accès bêta',
-                accessText: 'Cette build est réservée aux testeurs autorisés. Saisissez l’e-mail approuvé pour continuer.',
-                accessLabel: 'E-mail autorisé',
-                accessSubmit: 'Vérifier l’accès'
-            }
-        };
+            settingsTitle: 'Build beta',
+            settingsText: 'Build controllata per tester. Accesso verificato tramite licenza beta e attivazione remota.',
+            feedback: 'Invia feedback',
+            footerBuild: 'Kedrix — BETA v1 · Candidata beta',
+            accessKicker: 'Kedrix — Accesso beta',
+            accessTitle: 'Verifica accesso beta',
+            accessText: 'Questa build è riservata ai tester autorizzati. Inserisci l’email approvata per continuare.',
+            accessLabel: 'Email autorizzata',
+            accessSubmit: 'Verifica accesso'
+        },
+        en: {
+            settingsTitle: 'Beta build',
+            settingsText: 'Controlled build for testers. Access is verified through beta licensing and remote activation.',
+            feedback: 'Send feedback',
+            footerBuild: 'Kedrix — BETA v1 · Beta candidate',
+            accessKicker: 'Kedrix — Beta Access',
+            accessTitle: 'Verify beta access',
+            accessText: 'This build is reserved for authorized testers. Enter the approved email to continue.',
+            accessLabel: 'Approved email',
+            accessSubmit: 'Verify access'
+        },
+        es: {
+            settingsTitle: 'Versión beta',
+            settingsText: 'Build controlada para testers. El acceso se verifica mediante licencia beta y activación remota.',
+            feedback: 'Enviar feedback',
+            footerBuild: 'Kedrix — BETA v1 · Candidata beta',
+            accessKicker: 'Kedrix — Acceso beta',
+            accessTitle: 'Verifica acceso beta',
+            accessText: 'Esta build está reservada para testers autorizados. Introduce el correo aprobado para continuar.',
+            accessLabel: 'Correo autorizado',
+            accessSubmit: 'Verificar acceso'
+        },
+        fr: {
+            settingsTitle: 'Version bêta',
+            settingsText: 'Build contrôlée pour les testeurs. L’accès est vérifié via licence bêta et activation à distance.',
+            feedback: 'Envoyer un feedback',
+            footerBuild: 'Kedrix — BETA v1 · Candidate bêta',
+            accessKicker: 'Kedrix — Accès bêta',
+            accessTitle: 'Vérifier l’accès bêta',
+            accessText: 'Cette build est réservée aux testeurs autorisés. Saisissez l’e-mail approuvé pour continuer.',
+            accessLabel: 'E-mail autorisé',
+            accessSubmit: 'Vérifier l’accès'
+        }
+    };
         const betaCopy = betaUi[runtimeLang] || betaUi.it;
         setText('betaSettingsTitle', betaCopy.settingsTitle);
         setText('betaSettingsText', betaCopy.settingsText);
@@ -12004,9 +12032,7 @@ ${this.t('duplicatesSkipped', { dup: _excelSkippedDuplicates })}`
         const expenseAmountField = document.getElementById('expenseAmount');
         if (expenseNameField) expenseNameField.value = description;
         if (expenseAmountField) expenseAmountField.value = amount;
-        const expenseCategory = document.getElementById('expenseCategory');
-        if (expenseCategory && category) expenseCategory.value = category;
-        const expenseSubCategory = document.getElementById('expenseSubCategory');
+               const expenseSubCategory = document.getElementById('expenseSubCategory');
         if (expenseSubCategory) {
             this.updateSubcategorySelect(category, suggestion?.subCategory || '');
             expenseSubCategory.value = suggestion?.subCategory || '';
