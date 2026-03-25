@@ -1,249 +1,593 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Kedrix — Personal Finance Engine</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #0a0a0f;
-            color: #ffffff;
-            line-height: 1.5;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Kedrix — Personal Finance Engine</title>
+  <meta name="theme-color" content="#0c0d0e">
+  <meta name="kedrix-build" content="20260325_stage_entry_fix_v1">
+  <meta name="kedrix-channel" content="beta">
+  <meta name="kedrix-beta-registry-endpoint" content="https://script.google.com/macros/s/AKfycbyZIeJRQ6HICOzafg-9uZXTMPfDV-lEkUYe-FnNei6ldP9Smr9JUv5sMiaN5WUiM29F/exec">
+  <meta name="kedrix-tracking-endpoint" content="https://script.google.com/macros/s/AKfycbyZIeJRQ6HICOzafg-9uZXTMPfDV-lEkUYe-FnNei6ldP9Smr9JUv5sMiaN5WUiM29F/exec">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./install-banner.css">
+  <style>
+    .app-boot {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, rgba(56,189,248,.12), transparent 35%), #0c0d0e;
+      z-index: 9999;
+      transition: opacity .25s ease, visibility .25s ease;
+    }
+    .app-boot.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .app-boot-card {
+      width: min(92vw, 420px);
+      padding: 28px;
+      border-radius: 24px;
+      background: rgba(17,24,39,.9);
+      border: 1px solid rgba(56,189,248,.18);
+      box-shadow: 0 18px 40px rgba(0,0,0,.32);
+      text-align: center;
+    }
+    .app-boot-card img { width: 54px; height: 54px; margin-bottom: 14px; }
+    .app-boot-card h1 { font-size: 1.4rem; margin: 0 0 8px; color: #e5f5ff; }
+    .app-boot-card p { color: #94a3b8; margin: 0; }
+    .shell-hidden { display:none !important; }
+    .app-shell { padding: 18px 16px 110px; max-width: 980px; margin: 0 auto; }
+    .chart-container { position: relative; min-height: 260px; }
+    .support-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search || '');
+        var license = params.get('license') || params.get('license_key') || '';
+        var tester = params.get('tester') || params.get('tester_id') || '';
+        var email = params.get('email') || '';
+        if (license && tester && email) {
+          sessionStorage.setItem('kedrix_entry_payload', JSON.stringify({ license: license, tester: tester, email: email }));
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-        .header { padding: 24px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .logo { font-size: 20px; font-weight: 600; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .login-link, .logout-btn { color: #a1a1aa; text-decoration: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: color 0.2s ease; }
-        .login-link:hover { color: #ffffff; }
-        .logout-btn:hover { color: #ef4444; }
-        .hero { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; text-align: center; padding: 80px 0; }
-        .hero-content { max-width: 680px; margin: 0 auto; }
-        .badge { display: inline-block; padding: 6px 12px; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 100px; font-size: 13px; font-weight: 500; color: #38bdf8; margin-bottom: 24px; }
-        h1 { font-size: 64px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 24px; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .subheadline { font-size: 20px; color: #a1a1aa; margin-bottom: 48px; font-weight: 400; }
-        .form-container { max-width: 480px; margin: 0 auto 48px; }
-        .form-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-        input { flex: 1; min-width: 200px; padding: 16px 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 16px; color: #ffffff; font-family: inherit; transition: all 0.2s ease; }
-        input:focus { outline: none; border-color: #0ea5e9; background: rgba(14, 165, 233, 0.05); }
-        input::placeholder { color: #52525b; }
-        button { padding: 16px 32px; background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; color: #ffffff; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
-        button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
-        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .message { margin-top: 16px; padding: 12px; border-radius: 10px; font-size: 14px; display: none; }
-        .message.info { background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.2); color: #38bdf8; display: block; }
-        .features { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; margin-top: 48px; padding-top: 48px; border-top: 1px solid rgba(255,255,255,0.05); }
-        .feature { text-align: center; flex: 1; min-width: 200px; }
-        .feature-icon { font-size: 28px; margin-bottom: 12px; }
-        .feature-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-        .feature-desc { font-size: 14px; color: #71717a; }
-        .dashboard { padding: 48px 0; }
-        .welcome-card { background: rgba(255,255,255,0.05); border-radius: 24px; padding: 32px; margin-bottom: 32px; border: 1px solid rgba(255,255,255,0.1); }
-        .welcome-card h2 { font-size: 28px; margin-bottom: 12px; }
-        .welcome-card p { color: #a1a1aa; margin-bottom: 24px; }
-        .tester-info { background: rgba(14, 165, 233, 0.1); border-radius: 12px; padding: 16px; font-size: 14px; color: #38bdf8; font-family: monospace; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 32px; }
-        .card { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 24px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s ease; }
-        .card:hover { border-color: rgba(14, 165, 233, 0.3); background: rgba(255,255,255,0.05); }
-        .card h3 { font-size: 18px; margin-bottom: 12px; }
-        .card p { color: #71717a; font-size: 14px; margin-bottom: 16px; }
-        .status-badge { display: inline-block; padding: 4px 12px; background: rgba(34, 197, 94, 0.2); border-radius: 100px; font-size: 12px; font-weight: 500; color: #22c55e; }
-        .footer { padding: 48px 0 32px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); color: #52525b; font-size: 14px; }
-        @media (max-width: 768px) { h1 { font-size: 40px; } .form-group { flex-direction: column; } input, button { width: 100%; } .dashboard { padding: 24px 0; } .welcome-card h2 { font-size: 22px; } }
-    </style>
+      } catch (_err) {}
+    })();
+  </script>
+  <script src="./runtime-config.js"></script>
+  <script src="./runtime-i18n.js"></script>
+  <script src="./session-manager.js"></script>
+  <script src="./license-guard.js"></script>
+  <script src="./api-client.js"></script>
+  <script src="./license-system.js"></script>
 </head>
 <body>
-    <div id="landingContent" style="display: none;">
-        <div class="container">
-            <header class="header">
-                <div class="logo">KEDRIX</div>
-                <a href="#" class="login-link" id="loginLink">Accedi</a>
-            </header>
-            <main class="hero">
-                <div class="hero-content">
-                    <div class="badge">Private Beta</div>
-                    <h1>Control your financial decisions.<br>With clarity.</h1>
-                    <p class="subheadline">Kedrix gives you the tools to understand, track, and optimize your personal finances. No noise. No clutter. Just clarity.</p>
-                    <div class="form-container">
-                        <form id="betaForm" method="POST">
-                            <div class="form-group">
-                                <input type="text" id="name" name="name" placeholder="Nome e cognome" required>
-                                <input type="email" id="email" name="email" placeholder="Email" required>
-                                <button type="submit" id="submitBtn">Request Beta Access →</button>
-                            </div>
-                            <div id="message" class="message"></div>
-                        </form>
-                    </div>
-                    <div class="features">
-                        <div class="feature"><div class="feature-icon">📊</div><div class="feature-title">Real-time tracking</div><div class="feature-desc">Monitor your finances as they happen</div></div>
-                        <div class="feature"><div class="feature-icon">🧠</div><div class="feature-title">Intelligent insights</div><div class="feature-desc">Data-driven decisions, not guesses</div></div>
-                        <div class="feature"><div class="feature-icon">🔒</div><div class="feature-title">Privacy-first design</div><div class="feature-desc">Your data stays yours</div></div>
-                    </div>
-                </div>
-            </main>
-            <footer class="footer"><p>© 2026 Kedrix — Personal Finance Engine</p></footer>
+  <div id="appBoot" class="app-boot">
+    <div class="app-boot-card">
+      <img src="./assets/modern-logo-kedrix-pfe.svg" alt="Kedrix">
+      <h1>Kedrix Beta</h1>
+      <p id="appBootMessage">Verifica accesso e avvio dell’app in corso…</p>
+    </div>
+  </div>
+
+  <div class="app-shell container">
+    <header class="header">
+      <div class="brand-lockup">
+        <div class="brand-mark"><img src="./assets/modern-logo-kedrix-pfe.svg" alt="Kedrix"></div>
+        <div class="brand-copy">
+          <h1>Kedrix <span class="version">BETA</span></h1>
+          <div class="brand-caption" id="betaLaunchStatus">Personal Finance Engine</div>
         </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <div id="licenseStatus" class="license-status premium"><span class="license-badge">Beta</span></div>
+        <button id="privacyToggle" class="btn-link" type="button">Privacy</button>
+        <button id="themeToggle" class="theme-btn" type="button" aria-label="Tema">🌙</button>
+      </div>
+    </header>
+
+    <p class="subtitle" id="footerText">Dashboard operativa staging — bridge app attivo.</p>
+
+    <div id="premiumBanner" class="premium-banner">
+      <div class="premium-content">
+        <div class="premium-badge">BETA</div>
+        <div class="premium-text">
+          <h3 id="currentPlanTitle">Kedrix Beta Access</h3>
+          <p id="currentPlanMessage">Accesso autenticato tramite bridge license/tester/email.</p>
+          <div class="premium-mini-points">
+            <span id="footerPeriodLabel">Staging</span>
+            <span id="footerDaysLabel">Bridge live</span>
+            <span id="footerBrandSignature">No fake landing</span>
+          </div>
+        </div>
+        <button id="upgradeBtn" class="premium-btn" type="button">Premium</button>
+      </div>
     </div>
 
-    <div id="appContent" style="display: none;">
-        <div class="container">
-            <header class="header">
-                <div class="logo">KEDRIX <span style="font-size: 12px; background: rgba(14,165,233,0.2); padding: 2px 8px; border-radius: 100px; margin-left: 8px;">BETA</span></div>
-                <a class="logout-btn" id="logoutBtn">Esci</a>
-            </header>
-            <main class="dashboard">
-                <div class="welcome-card">
-                    <h2>Benvenuto in Kedrix Beta</h2>
-                    <p>Stai utilizzando la versione di anteprima. I tuoi dati sono al sicuro e ci aiutano a migliorare l'esperienza.</p>
-                    <div class="tester-info" id="testerInfo">Caricamento dati...</div>
-                </div>
-                <div class="grid">
-                    <div class="card"><h3>📊 Dashboard</h3><p>Visualizza il riepilogo delle tue finanze</p><span class="status-badge">In sviluppo</span></div>
-                    <div class="card"><h3>🧠 WiseScore™</h3><p>Il tuo punteggio di salute finanziaria</p><span class="status-badge">In arrivo</span></div>
-                    <div class="card"><h3>📈 Forecast</h3><p>Previsioni basate sulle tue abitudini</p><span class="status-badge">In arrivo</span></div>
-                    <div class="card"><h3>🔐 Privacy-first</h3><p>I tuoi dati rimangono tuoi. Sempre.</p><span class="status-badge">Attivo</span></div>
-                </div>
-            </main>
-            <footer class="footer"><p>© 2026 Kedrix — Personal Finance Engine | Build beta</p></footer>
+    <section class="summary-card" data-tab="home">
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label" id="budgetLabel">Budget giornaliero</span>
+          <span class="summary-value sensitive-amount" id="dailyBudget">€ 0,00</span>
+          <canvas id="budgetSparkline" height="36"></canvas>
         </div>
+        <div class="summary-item">
+          <span class="summary-label" id="remainingLabel">Rimanenza</span>
+          <span class="summary-value sensitive-amount" id="remaining">€ 0,00</span>
+          <div id="remainingStatus">✅</div>
+          <div id="remainingTrend" class="chart-note">—</div>
+          <canvas id="remainingSparkline" height="36"></canvas>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label" id="daysLabel">Giorni rimasti</span>
+          <span class="summary-value" id="daysLeft">0</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label" id="savingsPotLabel">Piano risparmi</span>
+          <span class="summary-value sensitive-amount" id="savingsPot">€ 0,00</span>
+          <div id="savingsProjected" class="chart-note">—</div>
+        </div>
+      </div>
+      <div class="period-info" id="periodInfo">Periodo attivo in caricamento…</div>
+    </section>
+
+    <nav class="tab-bar" aria-label="Sezioni app">
+      <button class="tab-btn active" data-tab="home" type="button">Home</button>
+      <button class="tab-btn" data-tab="income" type="button">Entrate</button>
+      <button class="tab-btn" data-tab="fixed" type="button">Fisse</button>
+      <button class="tab-btn" data-tab="variable" type="button">Variabili</button>
+      <button class="tab-btn" data-tab="analysis" type="button">Analisi</button>
+      <button class="tab-btn" data-tab="tools" type="button">Strumenti</button>
+      <button class="tab-btn" data-tab="ai" type="button">AI</button>
+    </nav>
+
+    <div id="guideMessage" class="guide-message" data-tab="home">Inserisci il primo dato per attivare Kedrix sul tuo periodo reale.</div>
+
+    <section class="section-card" data-tab="home" id="homeQuickAddCard">
+      <div class="section-header"><h2 data-i18n="homeQuickActionsTitle">Quick entry</h2><span class="badge">Live</span></div>
+      <div class="section-content support-grid">
+        <div class="input-group"><label for="incomeDesc">Descrizione entrata</label><input id="incomeDesc" type="text" placeholder="es. Stipendio"></div>
+        <div class="input-group"><label for="incomeAmount">Importo</label><input id="incomeAmount" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="input-group"><label for="incomeDate">Data</label><input id="incomeDate" type="date"></div>
+      </div>
+      <div class="button-group">
+        <button id="addIncome" class="btn-primary" type="button">Aggiungi entrata</button>
+        <button id="loadDemoBtn" class="btn-secondary" type="button">Carica demo</button>
+      </div>
+    </section>
+
+    <section class="section-card" data-tab="income">
+      <div class="section-header"><h2 id="totalIncomeLabel">Entrate</h2><span id="totalIncomeDisplay" class="badge">€ 0,00</span></div>
+      <div id="incomeList" class="expenses-list"></div>
+    </section>
+
+    <section class="section-card" data-tab="fixed">
+      <div class="section-header"><h2>Spese fisse</h2><span id="fixedHelp" class="badge">Periodo</span></div>
+      <div class="support-grid">
+        <div class="input-group"><label for="fixedName">Nome</label><input id="fixedName" type="text"></div>
+        <div class="input-group"><label for="fixedAmount">Importo</label><input id="fixedAmount" type="number" step="0.01"></div>
+        <div class="input-group"><label for="fixedDay">Giorno</label><input id="fixedDay" type="number" min="1" max="31"></div>
+        <div class="input-group"><label for="fixedEndDate">Fine</label><input id="fixedEndDate" type="date"></div>
+      </div>
+      <div class="button-group">
+        <button id="addFixedExpense" class="btn-primary" type="button">Aggiungi spesa fissa</button>
+        <button id="resetFixedBtn" class="btn-secondary" type="button">Reset</button>
+      </div>
+      <div id="fixedExpensesList" class="expenses-list"></div>
+    </section>
+
+    <section class="section-card" data-tab="variable">
+      <div class="section-header"><h2>Spese variabili</h2><span class="badge">Track</span></div>
+      <div class="support-grid">
+        <div class="input-group"><label for="expenseName">Descrizione</label><input id="expenseName" type="text"></div>
+        <div class="input-group"><label for="expenseAmount">Importo</label><input id="expenseAmount" type="number" step="0.01"></div>
+        <div class="input-group"><label for="expenseDate">Data</label><input id="expenseDate" type="date"></div>
+        <div class="input-group"><label for="expenseCategory">Categoria</label><select id="expenseCategory"><option value="Altro">Altro</option></select></div>
+        <div class="input-group"><label for="expenseSubCategory">Sottocategoria</label><select id="expenseSubCategory"><option value="">—</option></select></div>
+      </div>
+      <div class="button-group">
+        <button id="addVariableExpense" class="btn-primary" type="button">Aggiungi spesa</button>
+        <button id="voiceBtn" class="btn-secondary" type="button"><span id="voiceBtnText">Voice</span></button>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <input id="searchExpenses" type="text" placeholder="Cerca spese">
+        <select id="searchCategory"><option value="all">Tutte le categorie</option></select>
+        <button id="resetSearchBtn" class="btn-secondary" type="button">Pulisci</button>
+      </div>
+      <div id="variableExpensesList" class="expenses-list"></div>
+    </section>
+
+    <section class="section-card" data-tab="analysis">
+      <div class="section-header"><h2>Analisi</h2><button id="openReportBtn" class="btn-link" type="button">Report</button></div>
+      <p id="chartNote" class="chart-note">Aggiungi movimenti per vedere il grafico categorie.</p>
+      <div class="chart-container"><canvas id="expenseChart"></canvas></div>
+      <button id="chartLegendToggleBtn" class="btn-link" type="button">Legenda</button>
+      <div id="chartLegend"></div>
+      <div id="categoryPrintPanel" class="shell-hidden">
+        <div id="categoryPrintHint"></div>
+        <button id="printCategoryPdfBtn" type="button">Stampa</button>
+        <button id="closeCategoryPrintBtn" type="button">Chiudi</button>
+      </div>
+      <div id="balanceChartCard" style="margin-top:18px;">
+        <p id="balanceChartNote" class="chart-note">Entrate vs uscite</p>
+        <div class="chart-container"><canvas id="balanceChart"></canvas></div>
+      </div>
+      <div id="monthlyBalanceChartCard" style="margin-top:18px;">
+        <div class="chart-container"><canvas id="monthlyBalanceChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="section-card" data-tab="tools">
+      <div class="section-header"><h2>Strumenti</h2><span class="badge">Import</span></div>
+      <div class="import-actions">
+        <input id="csvFile" type="file" accept=".csv,.xls,.xlsx">
+        <span id="csvFileName">Nessun file selezionato</span>
+        <button id="importCsvBtn" class="btn-primary" type="button">Importa CSV / Excel</button>
+        <button id="importAdvancedToggle" class="btn-link" type="button">Opzioni avanzate</button>
+      </div>
+      <div id="importAdvanced" class="import-advanced" style="display:none;">
+        <div class="support-grid">
+          <div class="input-group"><label for="skipRows">Skip righe</label><input id="skipRows" type="number" value="0"></div>
+          <div class="input-group"><label for="headerRowManual">Header row</label><input id="headerRowManual" type="number" value="1"></div>
+          <div class="input-group"><label for="excelSheet">Foglio Excel</label><select id="excelSheet"><option value="">Carica un file Excel</option></select></div>
+          <div class="input-group"><label for="excelHeaderRow">Header Excel</label><select id="excelHeaderRow"><option value="1">1</option></select></div>
+          <div class="input-group"><label for="csvDelimiter">Delimitatore</label><input id="csvDelimiter" type="text" value=","></div>
+          <div class="input-group"><label for="csvSeparator">Separatore decimali</label><input id="csvSeparator" type="text" value="."></div>
+        </div>
+      </div>
+      <div class="support-grid" style="margin-top:12px;">
+        <div class="input-group"><label for="savePercent">Risparmio %</label><input id="savePercent" type="number" step="1" value="0"></div>
+        <div class="input-group"><label for="saveGoal">Obiettivo</label><input id="saveGoal" type="number" step="0.01" value="0"></div>
+        <div class="input-group"><label for="savingsPotInput">Risparmi accumulati</label><input id="savingsPotInput" type="number" step="0.01" value="0"></div>
+        <div class="input-group"><label for="thresholdInput">Soglia</label><input id="thresholdInput" type="number" step="1" value="50"></div>
+        <div class="input-group"><label for="targetDate">Data target</label><input id="targetDate" type="date"></div>
+        <div class="input-group"><label for="languageSelect">Lingua</label><select id="languageSelect"><option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option></select></div>
+      </div>
+      <div class="button-group" style="margin-top:12px;">
+        <button id="backupBtn" class="btn-secondary" type="button">Backup</button>
+        <button id="restoreBtn" class="btn-secondary" type="button">Restore</button>
+        <input id="restoreFile" type="file" class="shell-hidden">
+      </div>
+      <div id="footerFeatures">Staging app shell operativo</div>
+    </section>
+
+    <section class="section-card" data-tab="ai">
+      <div class="section-header"><h2>WiseMind™</h2><span class="badge">Beta</span></div>
+      <div id="suggestionCard" class="upgrade-prompt">
+        <h4 id="suggestionMessage">Suggerimento in caricamento…</h4>
+        <div class="button-group">
+          <button id="applySuggestionBtn" type="button">Applica</button>
+          <button id="dismissAiSuggestion" type="button">Chiudi</button>
+        </div>
+      </div>
+      <div id="aiWidget">
+        <div id="aiMessage" class="chart-note">Nessun insight disponibile.</div>
+        <div id="aiAction" class="chart-note">—</div>
+        <button id="applyAiSuggestion" class="btn-secondary" type="button">Usa insight</button>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <input id="chatInput" type="text" placeholder="Scrivi qui...">
+        <button id="homeVoiceBtn" class="btn-secondary" type="button">Mic</button>
+      </div>
+    </section>
+
+    <div id="reportModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="section-header"><h2>Report</h2><button id="closeReportBtn" class="btn-link" type="button">Chiudi</button></div>
+        <div id="reportGeneratedAt" class="chart-note">—</div>
+        <div id="reportContent"></div>
+        <div class="button-group" style="margin-top:12px;">
+          <button id="refreshReportBtn" class="btn-secondary" type="button">Refresh</button>
+          <button id="refreshReportModalBtn" class="btn-secondary" type="button">Aggiorna</button>
+          <button id="exportReportPdfBtn" class="btn-primary" type="button">Esporta</button>
+        </div>
+      </div>
     </div>
 
-    <script>
-        const LICENSE_STORAGE_KEY = 'kedrix_license_data';
-        
-        function getLicenseData() {
-            try { const stored = localStorage.getItem(LICENSE_STORAGE_KEY); if (stored) return JSON.parse(stored); } catch(e) { return null; }
-            return null;
+    <div id="premiumModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="section-header"><h2>Licenza</h2><button id="closePremiumBtn" class="btn-link" type="button">Chiudi</button></div>
+        <div class="plan-comparison">
+          <div class="plan free"><h3>Free</h3><ul><li>Limiti base</li></ul></div>
+          <div class="plan premium"><h3>Premium</h3><ul><li>Accesso completo</li></ul></div>
+        </div>
+        <div class="support-grid" style="margin-top:16px;">
+          <div class="input-group"><label for="licenseEmail">Email</label><input id="licenseEmail" type="email"></div>
+          <div class="input-group"><label for="licenseKey">License key</label><input id="licenseKey" type="text"></div>
+        </div>
+        <div class="button-group">
+          <button id="startTrialBtn" class="btn-secondary" type="button">Start trial</button>
+          <button id="activateLicenseBtn" class="btn-primary" type="button">Activate</button>
+          <button id="confirmLicenseBtn" class="btn-primary" type="button">Confirm</button>
+          <button id="cancelLicenseBtn" class="btn-secondary" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="supportGhost" class="shell-hidden" aria-hidden="true">
+      <button id="manageCategoriesBtn" type="button"></button>
+      <div id="categoryManagerOverlay"></div>
+      <input id="newCategoryName" type="text">
+      <input id="newSubcategoryName" type="text">
+      <select id="newSubcategoryParent"></select>
+      <button id="saveCategoryBtn" type="button"></button>
+      <button id="closeCategoryManager" type="button"></button>
+      <input id="showAllExpensesToggle" type="checkbox">
+      <div id="bwAppDialogTitle"></div>
+      <div id="bwAppDialogMessage"></div>
+      <input id="bwAppDialogInput" type="text">
+      <button id="bwAppDialogCancel" type="button"></button>
+      <button id="bwAppDialogConfirm" type="button"></button>
+      <button id="installAppBtn" type="button"></button>
+      <button id="sendFeedbackBtn" type="button"></button>
+      <a id="footerFeedbackLink" href="#">feedback</a>
+      <button id="micFixedBtn" type="button"></button>
+      <span id="micFixedText"></span>
+      <div id="forecastSimulatorInput"></div>
+      <div id="simulatorBudgetValue"></div>
+      <div id="simulatorRemainingValue"></div>
+      <div id="simulatorProjectedEndValue"></div>
+      <div id="simulatorSavingValue"></div>
+      <div id="betaLaunchTitle"></div>
+      <div id="wiseScoreHomeCard"></div>
+      <div id="dailyCheckInCard"></div>
+      <div class="analysis-savings-card"><div class="savings-widget"></div></div>
+      <div id="homePriorityKicker"></div>
+      <div id="kedrixActivationCard"></div>
+      <input id="accumulatedSavingsLabel"></input>
+      <input id="accumulatedSavingsValue"></input>
+      <button id="addCategoryBtnText"></button>
+      <button id="addExpenseBtn"></button>
+      <button id="addFixedBtn"></button>
+      <button id="addIncomeBtn"></button>
+      <div id="aiWidgetBadge"></div>
+      <input id="aiWidgetTitle"></input>
+      <input id="allocationPeriodLabel"></input>
+      <div id="allocationPeriodNote"></div>
+      <input id="allocationPeriodValue"></input>
+      <button id="applySaveBtn"></button>
+      <input id="assistantNameText"></input>
+      <input id="backupLabel"></input>
+      <div id="badge"></div>
+      <div id="betaSettingsBadge"></div>
+      <input id="betaSettingsText"></input>
+      <div id="bwAppDialog"></div>
+      <button id="cancelImportBtn"></button>
+      <button id="cancelMappingBtn"></button>
+      <button id="categoryPrintCount"></button>
+      <button id="categoryPrintTitle"></button>
+      <button id="categoryPrintTotal"></button>
+      <input id="chatMessages"></input>
+      <button id="chatVoiceBtn"></button>
+      <button id="closeCategoryPanelBtn"></button>
+      <button id="closeDetailBtn"></button>
+      <button id="confirmImportBtn"></button>
+      <button id="confirmMappingBtn"></button>
+      <button id="copyBetaInviteBtn"></button>
+      <input id="csvChooseFileLabel"></input>
+      <input id="csvDateFormatLabel"></input>
+      <div id="csvMappingFields"></div>
+      <input id="csvMappingFieldsTitle"></input>
+      <div id="csvMappingHeaders"></div>
+      <div id="csvMappingInstructions"></div>
+      <div id="csvMappingOverlay"></div>
+      <div id="csvMappingPreview"></div>
+      <input id="csvMappingTitle"></input>
+      <input id="csvPreviewTitle"></input>
+      <input id="csvSeparatorLabel"></input>
+      <input id="csvSubtitle"></input>
+      <input id="csvTitle"></input>
+      <input id="currentRateLabel"></input>
+      <input id="currentRateValue"></input>
+      <div id="customCategoriesList"></div>
+      <input id="dailyCheckInSubtitle"></input>
+      <input id="dailyCheckInTitle"></input>
+      <input id="dailyCheckInValue"></input>
+      <input id="dateFormatDays"></input>
+      <input id="dateFormatMonths"></input>
+      <input id="dateHintFixed"></input>
+      <input id="dateHintVariable"></input>
+      <div id="defaultCategoriesList"></div>
+      <div id="duplicateImportExisting"></div>
+      <div id="duplicateImportIncoming"></div>
+      <button id="duplicateImportKeepBtn"></button>
+      <div id="duplicateImportOverlay"></div>
+      <button id="duplicateImportSkipBtn"></button>
+      <input id="duplicateImportSubtitle"></input>
+      <input id="duplicateImportTitle"></input>
+      <input id="excelHeaderLabel"></input>
+      <div id="excelHelp"></div>
+      <input id="excelSheetLabel"></input>
+      <button id="exportCalendarBtn"></button>
+      <input id="fixedDateFormatHelp"></input>
+      <input id="fixedStatusHomeBadge"></input>
+      <input id="fixedStatusHomeList"></input>
+      <input id="fixedVoiceStatus"></input>
+      <input id="footerBudgetLabel"></input>
+      <input id="footerBuildLabel"></input>
+      <input id="footerPeriodBudget"></input>
+      <input id="footerPeriodDays"></input>
+      <input id="footerPeriodRange"></input>
+      <input id="forecastSimulatorBudgetLabel"></input>
+      <input id="forecastSimulatorBudgetValue"></input>
+      <div id="forecastSimulatorEmpty"></div>
+      <input id="forecastSimulatorForecastLabel"></input>
+      <input id="forecastSimulatorForecastValue"></input>
+      <input id="forecastSimulatorHint"></input>
+      <input id="forecastSimulatorTitle"></input>
+      <input id="headerRowManualLabel"></input>
+      <button id="homeManualBtn"></button>
+      <input id="homeVoiceStatus"></input>
+      <div id="importReviewList"></div>
+      <div id="importReviewOverlay"></div>
+      <input id="importReviewTitle"></input>
+      <input id="incomeDateLabel"></input>
+      <div id="kedrix-activation-style"></div>
+      <div id="kedrixActivationModal"></div>
+      <button id="kedrixFeedbackCancel"></button>
+      <select id="kedrixFeedbackCategory"></select>
+      <input id="kedrixFeedbackCategoryLabel"></input>
+      <div id="kedrixFeedbackDialog"></div>
+      <div id="kedrixFeedbackDialogBody"></div>
+      <div id="kedrixFeedbackDialogCard"></div>
+      <div id="kedrixFeedbackDialogFooter"></div>
+      <div id="kedrixFeedbackGrid"></div>
+      <input id="kedrixFeedbackMessage"></input>
+      <input id="kedrixFeedbackMessageLabel"></input>
+      <select id="kedrixFeedbackQuality"></select>
+      <input id="kedrixFeedbackQualityLabel"></input>
+      <div id="kedrixFeedbackSubmit"></div>
+      <input id="kedrixFeedbackSubtitle"></input>
+      <input id="kedrixFeedbackTitle"></input>
+      <select id="kedrixFeedbackType"></select>
+      <input id="kedrixFeedbackTypeLabel"></input>
+      <div id="licenseModal"></div>
+      <canvas id="monthlyBalanceChartNote"></canvas>
+      <div id="monthlyBalanceEmpty"></div>
+      <input id="onboarding-counter"></input>
+      <div id="onboarding-demo"></div>
+      <input id="onboarding-description"></input>
+      <div id="onboarding-empty"></div>
+      <button id="onboarding-next"></button>
+      <div id="onboarding-progress"></div>
+      <button id="onboarding-skip"></button>
+      <div id="onboarding-style"></div>
+      <div id="periodSource"></div>
+      <div id="pillarDisciplineFill"></div>
+      <input id="pillarDisciplineValue"></input>
+      <div id="pillarResilienceFill"></div>
+      <input id="pillarResilienceValue"></input>
+      <div id="pillarStabilityFill"></div>
+      <input id="pillarStabilityValue"></input>
+      <div id="progressCircle"></div>
+      <input id="progressPercentage"></input>
+      <div id="reportToolsCard"></div>
+      <div id="reportViewContent"></div>
+      <button id="resetAllBtn"></button>
+      <button id="resetColorsBtn"></button>
+      <button id="resetDayBtn"></button>
+      <input id="safeToSpendHint"></input>
+      <input id="safeToSpendLabel"></input>
+      <input id="safeToSpendValue"></input>
+      <button id="saveSubCategoryBtn"></button>
+      <input id="savingsPotInputLabel"></input>
+      <div id="savingsProgressBar"></div>
+      <input id="savingsTitle"></input>
+      <input id="savingsWidgetTitle"></input>
+      <input id="searchResultsCount"></input>
+      <button id="sendChatBtn"></button>
+      <button id="shareBetaInviteBtn"></button>
+      <input id="showAllExpensesLabel"></input>
+      <button id="skipHelp"></button>
+      <button id="skipRowsLabel"></button>
+      <input id="spendingPaceLabel"></input>
+      <input id="spendingPaceValue"></input>
+      <input id="sustainabilityLabel"></input>
+      <input id="sustainabilityValue"></input>
+      <div id="toast"></div>
+      <input id="voiceStatus"></input>
+      <div id="wiseBrainBadge"></div>
+      <div id="wiseBrainNote"></div>
+      <div id="wiseDecisionCard"></div>
+      <button id="wiseDecisionCopy"></button>
+      <input id="wiseDecisionLabel"></input>
+      <div id="wiseDecisionMain"></div>
+      <div id="wiseDecisionReason"></div>
+      <input id="wiseDecisionTitle"></input>
+      <input id="wiseForecastAvgLabel"></input>
+      <input id="wiseForecastAvgValue"></input>
+      <div id="wiseForecastCard"></div>
+      <input id="wiseForecastEndLabel"></input>
+      <input id="wiseForecastFixedResidualLabel"></input>
+      <input id="wiseForecastFixedResidualValue"></input>
+      <input id="wiseForecastRemainingLabel"></input>
+      <input id="wiseForecastRemainingValue"></input>
+      <input id="wiseForecastRiskDayLabel"></input>
+      <input id="wiseForecastRiskDayValue"></input>
+      <input id="wiseForecastSafeDaysLabel"></input>
+      <input id="wiseForecastSafeDaysValue"></input>
+      <input id="wiseForecastStatus"></input>
+      <input id="wiseForecastSubtitle"></input>
+      <input id="wiseForecastTitle"></input>
+      <input id="wiseForecastValue"></input>
+      <input id="wiseForecastVariableProjectionLabel"></input>
+      <input id="wiseForecastVariableProjectionValue"></input>
+      <div id="wiseSavingSummary"></div>
+      <input id="wiseScoreHomeTitle"></input>
+      <div id="wiseScoreMeta"></div>
+      <input id="wiseScoreStatus"></input>
+      <input id="wiseScoreValue"></input>
+    </div>
+  </div>
+
+  <script src="./tracking-hooks.js"></script>
+  <script src="./tracking.js"></script>
+  <script src="./install-banner.js"></script>
+  <script src="./app.js"></script>
+  <script src="./guided-activation.js"></script>
+  <script>
+    (function () {
+      function hasAccess() {
+        try {
+          var data = window.LicenseSystem && typeof window.LicenseSystem.getLicenseData === 'function'
+            ? window.LicenseSystem.getLicenseData()
+            : null;
+          return !!(data && data.license_key && data.tester_id && data.email);
+        } catch (_err) {
+          return false;
         }
-        
-        function setLicenseData(licenseKey, testerId, email) {
-            localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify({
-                license_key: licenseKey,
-                tester_id: testerId,
-                email: email,
-                activated_at: new Date().toISOString(),
-                last_check: new Date().toISOString()
-            }));
+      }
+
+      function updateBootMessage() {
+        var el = document.getElementById('appBootMessage');
+        if (!el) return;
+        el.textContent = hasAccess()
+          ? 'Bridge acquisito. Caricamento app reale in corso…'
+          : 'Accesso non trovato. Reindirizzamento alla landing…';
+      }
+
+      function hideBoot() {
+        var boot = document.getElementById('appBoot');
+        if (boot) boot.classList.add('hidden');
+      }
+
+      updateBootMessage();
+
+      window.addEventListener('load', function () {
+        updateBootMessage();
+        if (!hasAccess()) {
+          setTimeout(function () {
+            window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
+          }, 700);
+          return;
         }
-        
-        function clearLicenseData() {
-            localStorage.removeItem(LICENSE_STORAGE_KEY);
-        }
-        
-        function showApp() {
-            document.getElementById('landingContent').style.display = 'none';
-            document.getElementById('appContent').style.display = 'block';
-            
-            const data = getLicenseData();
-            const infoDiv = document.getElementById('testerInfo');
-            if (data && data.tester_id && data.email) {
-                infoDiv.innerHTML = `<strong>Tester ID:</strong> ${data.tester_id}<br><strong>Email:</strong> ${data.email}<br><strong>Attivato il:</strong> ${new Date(data.activated_at).toLocaleString()}<br><strong>Stato:</strong> <span style="color: #22c55e;">● Attivo</span>`;
-            } else {
-                infoDiv.innerHTML = '⚠️ Nessuna licenza attiva. Verrai reindirizzato...';
-                setTimeout(() => { window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev'; }, 3000);
-            }
-        }
-        
-        function showLanding() {
-            document.getElementById('landingContent').style.display = 'block';
-            document.getElementById('appContent').style.display = 'none';
-        }
-        
-        function autoLogin() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const licenseKey = urlParams.get('license');
-            const testerId = urlParams.get('tester');
-            const email = urlParams.get('email');
-            
-            if (licenseKey && testerId && email) {
-                setLicenseData(licenseKey, testerId, email);
-                const cleanUrl = window.location.pathname;
-                window.history.replaceState({}, document.title, cleanUrl);
-                showApp();
-                return true;
-            }
-            
-            const existingData = getLicenseData();
-            if (existingData) {
-                showApp();
-                return true;
-            }
-            
-            showLanding();
-            return false;
-        }
-        
-        // Landing form submit
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyZIeJRQ6HICOzafg-9uZXTMPfDV-lEkUYe-FnNei6ldP9Smr9JUv5sMiaN5WUiM29F/exec';
-        const form = document.getElementById('betaForm');
-        const nameInput = document.getElementById('name');
-        const emailInput = document.getElementById('email');
-        const submitBtn = document.getElementById('submitBtn');
-        const messageDiv = document.getElementById('message');
-        let isSubmitting = false;
-        
-        function showMessage(text, type) {
-            messageDiv.textContent = text;
-            messageDiv.className = `message ${type}`;
-            setTimeout(() => { messageDiv.className = 'message'; }, 5000);
-        }
-        
-        function submitWithForm(name, email) {
-            const dynamicForm = document.createElement('form');
-            dynamicForm.method = 'POST';
-            dynamicForm.action = API_URL;
-            dynamicForm.target = '_self';
-            dynamicForm.style.display = 'none';
-            const fields = { action: 'register_beta_request', name: name, email: email, source: 'kedrix-beta-test-landing' };
-            for (let key in fields) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = fields[key];
-                dynamicForm.appendChild(input);
-            }
-            document.body.appendChild(dynamicForm);
-            showMessage('Richiesta in corso... Reindirizzamento automatico', 'info');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Richiesta in corso...';
-            dynamicForm.submit();
-        }
-        
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (isSubmitting) return;
-                const name = nameInput.value.trim();
-                const email = emailInput.value.trim();
-                if (!name || !email) { showMessage('Compila tutti i campi', 'error'); return; }
-                if (!email.includes('@')) { showMessage('Inserisci un indirizzo email valido', 'error'); return; }
-                isSubmitting = true;
-                submitWithForm(name, email);
+        setTimeout(hideBoot, 450);
+      });
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          try {
+            var swUrl = window.KedrixRuntimeConfig && typeof window.KedrixRuntimeConfig.getServiceWorkerUrl === 'function'
+              ? window.KedrixRuntimeConfig.getServiceWorkerUrl()
+              : './sw.js';
+            navigator.serviceWorker.register(swUrl, { scope: './' }).catch(function (err) {
+              console.warn('SW register failed', err);
             });
-        }
-        
-        const loginLink = document.getElementById('loginLink');
-        if (loginLink) {
-            loginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
-            });
-        }
-        
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                clearLicenseData();
-                window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
-            });
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            autoLogin();
+          } catch (err) {
+            console.warn('SW bootstrap failed', err);
+          }
         });
-    </script>
+      }
+    })();
+  </script>
 </body>
 </html>
+
