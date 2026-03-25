@@ -85,8 +85,9 @@ class KedrixLicense {
                 return '';
             };
             return {
-                email: read('email', 'license_email'),
-                testerId: read('tester_id', 'testerId', 'license_key', 'licenseKey')
+                email: read('email', 'license_email', 'mail'),
+                testerId: read('tester_id', 'testerId', 'license_key', 'licenseKey', 'beta_id'),
+                auto: read('auto_login', 'autologin', 'beta_active')
             };
         } catch (_error) {
             return { email: '', testerId: '' };
@@ -101,7 +102,7 @@ class KedrixLicense {
             email: credentials.email || this.state.email || '',
             testerId: credentials.testerId || this.state.testerId || '',
             checkedAt: this.state.checkedAt || '',
-            message: this.state.message || ''
+            message: (credentials.auto ? 'Attivazione beta in corso…' : (this.state.message || ''))
         });
 
         try {
@@ -134,7 +135,7 @@ class KedrixLicense {
         this.renderGate();
         this.hydrateStateFromUrl();
 
-        if (!this.state.email) {
+        if (!this.state.email && !this.state.testerId) {
             this.showGate('missing');
             return this.state;
         }
@@ -328,11 +329,11 @@ class KedrixLicense {
     messageForStatus(status) {
         const messages = {
             active: 'Accesso beta attivo.',
-            pending: 'Richiesta ricevuta. L’accesso verrà attivato appena il tuo batch sarà aperto.',
+            pending: 'Richiesta ricevuta. Stiamo completando l’attivazione della tua beta.',
             expired: 'La tua licenza beta è scaduta.',
             revoked: 'Il tuo accesso è stato revocato.',
             suspended: 'Il tuo accesso è temporaneamente sospeso.',
-            missing: 'Email non ancora autorizzata alla beta.',
+            missing: 'Email non ancora autorizzata alla beta. Richiedi l’accesso dalla landing Kedrix.',
             error: 'Impossibile verificare la licenza beta.'
         };
         return messages[status] || messages.missing;
@@ -380,7 +381,7 @@ class KedrixLicense {
                     </label>
                     <div class="kedrix-beta-gate__actions">
                         <button id="kedrixBetaSubmit" type="submit">Verifica accesso</button>
-                        <a href="https://kedrix-site-81e099.gitlab.io/" target="_blank" rel="noreferrer">Richiedi accesso beta</a>
+                        <a href="https://kedrix-site-81e099.gitlab.io/start.html" target="_blank" rel="noreferrer">Richiedi accesso beta</a>
                     </div>
                 </form>
                 <div id="kedrixBetaGateStatus" class="kedrix-beta-gate__status"></div>

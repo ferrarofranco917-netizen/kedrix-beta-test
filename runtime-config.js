@@ -1,13 +1,13 @@
 (function (global) {
   const CONFIG = {
-    build: '20260322_refactor_i18n_v1a',
+    build: '20260325_bridge_autologin_v1',
     channel: 'beta',
-    serviceWorkerVersion: '20260322_cf1',
+    serviceWorkerVersion: '20260325_bridge_v1',
     serviceWorkerPath: './sw.js',
     scope: './',
     endpoints: {
-      registry: 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec',
-      tracking: 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec'
+      registry: 'https://script.google.com/macros/s/AKfycbwPY9Y83fg3G617kzWnWF5vOb0yuDtOJ9w4C0MFifGhpZDxUuEoEzj-4kKogV9-i7au/exec',
+      tracking: 'https://script.google.com/macros/s/AKfycbwPY9Y83fg3G617kzWnWF5vOb0yuDtOJ9w4C0MFifGhpZDxUuEoEzj-4kKogV9-i7au/exec'
     }
   };
 
