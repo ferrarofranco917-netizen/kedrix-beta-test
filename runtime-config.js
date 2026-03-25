@@ -1,8 +1,8 @@
 (function (global) {
   const CONFIG = {
-    build: '20260322_refactor_i18n_v1a',
+    build: '20260325_stage_bridge_v3',
     channel: 'beta',
-    serviceWorkerVersion: '20260322_cf1',
+    serviceWorkerVersion: '20260325_stage_bridge_v3',
     serviceWorkerPath: './sw.js',
     scope: './',
     endpoints: {
