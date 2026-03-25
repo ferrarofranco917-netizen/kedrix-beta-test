@@ -3823,27 +3823,9 @@ applyLanguage(lang) {
         const goalLabel = document.querySelector('.input-group label[for="saveGoal"]');
         if (goalLabel) goalLabel.textContent = this.t('goalLabel');
         
-        const settingLabels = document.querySelectorAll('.setting-item label');
-        if (settingLabels.length >= 3) {
-            settingLabels[0].innerHTML = this.t('thresholdLabel');
-            settingLabels[1].innerHTML = this.t('languageLabel');
-            settingLabels[2].innerHTML = this.t('backupLabel');
-        }
-        
+              
         const welcomeMessage = document.querySelector('.chat-message.bot .message-text');
         if (welcomeMessage) welcomeMessage.textContent = this.t('welcomeMessage');
-        
-        const suggestionChips = document.querySelectorAll('.suggestion-chip');
-        if (suggestionChips.length >= 4) {
-            suggestionChips[0].textContent = this.t('suggestion1');
-            suggestionChips[1].textContent = this.t('suggestion2');
-            suggestionChips[2].textContent = this.t('suggestion3');
-            suggestionChips[3].textContent = this.t('suggestion4');
-            suggestionChips[0].dataset.question = this.t('aiQuestionSave100');
-            suggestionChips[1].dataset.question = this.t('aiQuestionSimulateIncrease');
-            suggestionChips[2].dataset.question = this.t('aiQuestionGoal');
-            suggestionChips[3].dataset.question = this.t('aiQuestionTopCategory');
-        }
 
         const balanceChartCard = document.getElementById('balanceChartCard');
         if (balanceChartCard) {
@@ -3874,7 +3856,7 @@ applyLanguage(lang) {
                 : this.t('categoryPrintHintEmpty');
         }
         const categoryPrintKpis = categoryPrintPanel ? categoryPrintPanel.querySelectorAll('.category-print-kpi span') : [];
-        if (categoryPrintKpis.length >= 2) {
+        if (categoryPrintKpis && categoryPrintKpis.length >= 2) {
             categoryPrintKpis[0].textContent = this.t('categoryPrintTotalLabel');
             categoryPrintKpis[1].textContent = this.t('categoryPrintCountLabel');
         }
