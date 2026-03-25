@@ -8,6 +8,10 @@ const SESSION_STORAGE_KEY = 'kedrix_session';
 
 class LicenseSystem {
     
+    // ============================================================
+    // METODI DI LETTURA/SCRITTURA LOCALSTORAGE
+    // ============================================================
+    
     static getLicenseData() {
         try {
             const stored = localStorage.getItem(LICENSE_STORAGE_KEY);
@@ -32,6 +36,14 @@ class LicenseSystem {
         return data;
     }
     
+    static clearLicenseData() {
+        localStorage.removeItem(LICENSE_STORAGE_KEY);
+    }
+    
+    // ============================================================
+    // SESSION ID
+    // ============================================================
+    
     static getSessionId() {
         try {
             let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -45,31 +57,49 @@ class LicenseSystem {
         }
     }
     
-    static async autoLogin() {
+    // ============================================================
+    // AUTO-LOGIN — LEGGE I PARAMETRI DALL'URL
+    // ============================================================
+    
+    static autoLogin() {
+        // Leggi parametri dall'URL
         const urlParams = new URLSearchParams(window.location.search);
         let licenseKey = urlParams.get('license');
         let testerId = urlParams.get('tester');
         let email = urlParams.get('email');
         
-        const existingData = this.getLicenseData();
-        
+        // Se i parametri esistono, salva e pulisci URL
         if (licenseKey && testerId && email) {
             this.setLicenseData(licenseKey, testerId, email);
+            
+            // Rimuovi parametri dall'URL senza ricaricare la pagina
             const cleanUrl = window.location.pathname + window.location.hash;
             window.history.replaceState({}, document.title, cleanUrl);
+            
+            console.log('Auto-login effettuato con successo');
             return { success: true, data: { license_key: licenseKey, tester_id: testerId, email: email } };
         }
         
+        // Se non ci sono parametri, verifica se esiste già una licenza salvata
+        const existingData = this.getLicenseData();
         if (existingData) {
+            console.log('Licenza esistente trovata:', existingData.tester_id);
             return { success: true, data: existingData };
         }
         
+        // Nessuna licenza trovata — reindirizza alla landing
+        console.log('Nessuna licenza trovata, reindirizzamento alla landing');
+        window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
         return { success: false, error: 'No valid license found' };
     }
     
+    // ============================================================
+    // VALIDAZIONE LICENZA (opzionale, chiamata periodica)
+    // ============================================================
+    
     static async validateLicense(licenseKey, testerId) {
         try {
-            const response = await fetch('https://script.google.com/macros/s/AKfycbz_StagingEndpoint/exec', {
+            const response = await fetch('https://script.google.com/macros/s/AKfycbyZIeJRQ6HICOzafg-9uZXTMPfDV-lEkUYe-FnNei6ldP9Smr9JUv5sMiaN5WUiM29F/exec', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -93,23 +123,27 @@ class LicenseSystem {
         const licenseData = this.getLicenseData();
         
         if (!licenseData) {
-            window.location.href = '/';
+            window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
             return false;
         }
         
-        const validation = await this.validateLicense(licenseData.license_key, licenseData.tester_id);
-        
-        if (!validation.valid) {
-            localStorage.removeItem(LICENSE_STORAGE_KEY);
-            window.location.href = '/';
-            return false;
-        }
+        // Opzionale: valida con backend (chiamata async)
+        // const validation = await this.validateLicense(licenseData.license_key, licenseData.tester_id);
+        // if (!validation.valid) {
+        //     this.clearLicenseData();
+        //     window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
+        //     return false;
+        // }
         
         licenseData.last_check = new Date().toISOString();
         localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(licenseData));
         
         return true;
     }
+    
+    // ============================================================
+    // GETTER
+    // ============================================================
     
     static getCurrentTesterId() {
         const data = this.getLicenseData();
@@ -126,13 +160,31 @@ class LicenseSystem {
         return data ? data.license_key : null;
     }
     
+    // ============================================================
+    // LOGOUT
+    // ============================================================
+    
     static logout() {
-        localStorage.removeItem(LICENSE_STORAGE_KEY);
+        this.clearLicenseData();
         sessionStorage.clear();
-        window.location.href = '/';
+        window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
     }
 }
 
+// ============================================================
+// INIZIALIZZAZIONE AUTOMATICA ALL'AVVIO
+// ============================================================
+
+// Esegui auto-login quando il DOM è pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        LicenseSystem.autoLogin();
+    });
+} else {
+    LicenseSystem.autoLogin();
+}
+
+// Esporta per moduli (se usi moduli ES6)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = LicenseSystem;
 }
