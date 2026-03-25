@@ -3950,15 +3950,18 @@ if (el.hasAttribute('data-i18n-html')) {
         
         const categorySelect = document.getElementById('expenseCategory');
         if (categorySelect) {
-            const options = categorySelect.options;
-            options[0].text = this.t('categoryAlimentari');
-            options[1].text = this.t('categoryTrasporti');
-            options[2].text = this.t('categoryAltro');
-            // Solo premium ha più categorie
-            if (options.length > 3) {
-                options[3].text = this.t('categorySvago');
-                options[4].text = this.t('categorySalute');
-                options[5].text = this.t('categoryAbbigliamento');
+            const desiredLabels = [
+                this.t('categoryAlimentari'),
+                this.t('categoryTrasporti'),
+                this.t('categoryAltro'),
+                this.t('categorySvago'),
+                this.t('categorySalute'),
+                this.t('categoryAbbigliamento')
+            ];
+            for (let i = 0; i < desiredLabels.length; i += 1) {
+                const option = categorySelect.options[i];
+                if (!option) continue;
+                option.text = desiredLabels[i];
             }
         }
         
