@@ -3644,18 +3644,9 @@ detectCsvDelimiter(text, fallback = ',') {
     }
 
     uiText(key, vars) {
-        const dict = this.getUiTextSet();
-        let str = dict[key] ?? key;
-        if (vars && typeof vars === 'object') {
-            for (const [k, v] of Object.entries(vars)) {
-                str = String(str).replaceAll(`{${k}}`, String(v));
-            }
-        }
-        return str;
-    }
-
-
-     if (vars && typeof vars === 'object') {
+    const dict = this.getUiTextSet();
+    let str = dict[key] ?? key;
+    if (vars && typeof vars === 'object') {
         for (const [k, v] of Object.entries(vars)) {
             str = String(str).replaceAll(`{${k}}`, String(v));
         }
@@ -3664,13 +3655,41 @@ detectCsvDelimiter(text, fallback = ',') {
 }
 
 applyLanguage(lang) {
-    ...
-}
+    console.log("🌐 Cambio lingua a:", lang);
 
-const betaUi = {
-    it: {
-        const betaUi = {
-            it: {
+    const runtimeLang = lang || this.getRuntimeLanguage() || 'it';
+
+    const setText = (id, value, useHtml = false) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (useHtml) el.innerHTML = value;
+        else el.textContent = value;
+    };
+
+    const setPlaceholder = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.placeholder = value;
+    };
+
+    const expenseCategory = document.getElementById('expenseCategory');
+    if (expenseCategory && expenseCategory.options) {
+        for (let i = 0; i < expenseCategory.options.length; i++) {
+            const option = expenseCategory.options[i];
+            if (!option) continue;
+            const value = option.value;
+            if (!value) continue;
+            const translated = this.t(`category${value}`);
+            if (translated && translated !== `category${value}`) {
+                option.text = translated;
+            }
+        }
+    } else {
+        console.warn('KEDRIX: expenseCategory non disponibile, skip');
+    }
+
+    const betaUi = {
+        it: {
                 settingsTitle: 'Build beta',
                 settingsText: 'Build controllata per tester. Accesso verificato tramite licenza beta e attivazione remota.',
                 feedback: 'Invia feedback',
