@@ -354,4 +354,11 @@
   };
 
   LicenseSystem.autoLogin();
-})(window);
+ const result = LicenseSystem.autoLogin();
+
+if (result && result.success) {
+  console.log('🔁 Sync license after bridge');
+  if (global.KedrixLicenseInstance) {
+    global.KedrixLicenseInstance.syncFromStorage();
+  }
+}
