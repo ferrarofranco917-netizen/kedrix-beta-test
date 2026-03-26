@@ -1,364 +1,460 @@
-// ============================================================
-// KEDRIX BETA — LICENSE SYSTEM / APP ENTRY BRIDGE
-// VERSION: 20260325_stage_entry_fix_v2
-// ============================================================
+// ============================================
+// KEDRIX — CONTROLLED BETA LICENSE SYSTEM
+// Compatible with existing app.js hooks
+// ============================================
 
-(function (global) {
-  const LICENSE_STORAGE_KEY = 'kedrix_license_data';
-  const SESSION_STORAGE_KEY = 'kedrix_session';
-  const LANDING_URL = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
-  const APP_URL = 'https://kedrix-beta-test.pages.dev';
-  const DEFAULT_LIMITS = {
-    free: { maxTransactions: 50, maxCategories: 3, csvImport: false },
-    premium: { maxTransactions: Infinity, maxCategories: Infinity, csvImport: true }
-  };
-
-  function safeJsonParse(value) {
-    try {
-      return value ? JSON.parse(value) : null;
-    } catch (_err) {
-      return null;
-    }
-  }
-
-  function safeTrim(value) {
-    return String(value == null ? '' : value).trim();
-  }
-
-  function decodeParam(value) {
-    const raw = safeTrim(value);
-    if (!raw) return '';
-    try {
-      return decodeURIComponent(raw);
-    } catch (_err) {
-      return raw;
-    }
-  }
-
-  function normalizeEmail(value) {
-    return decodeParam(value).toLowerCase();
-  }
-
-  function nowIso() {
-    return new Date().toISOString();
-  }
-
-  function buildLicenseState(licenseKey, testerId, email, extra = {}) {
-    return {
-      license_key: safeTrim(licenseKey),
-      tester_id: safeTrim(testerId),
-      email: normalizeEmail(email),
-      activated_at: extra.activated_at || nowIso(),
-      last_check: nowIso(),
-      source: extra.source || 'app_entry_bridge',
-      expires_at: safeTrim(extra.expires_at || ''),
-      status: safeTrim(extra.status || 'active')
-    };
-  }
-
-  class LicenseSystem {
-    static getSessionId() {
-      try {
-        let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (!sessionId) {
-          sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-          sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
-        }
-        return sessionId;
-      } catch (_err) {
-        return 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-      }
-    }
-
-    static getLicenseData() {
-      const structured = safeJsonParse(localStorage.getItem(LICENSE_STORAGE_KEY));
-      if (structured && structured.license_key && structured.tester_id && structured.email) {
-        return structured;
-      }
-
-      const legacyLicense = safeTrim(localStorage.getItem('license_key') || localStorage.getItem('kedrix_license_key'));
-      const legacyTester = safeTrim(localStorage.getItem('tester_id') || localStorage.getItem('kedrix_tester_id'));
-      const legacyEmail = normalizeEmail(localStorage.getItem('license_email') || localStorage.getItem('kedrix_email'));
-      const legacyExpiry = safeTrim(localStorage.getItem('license_expires_at') || '');
-      const legacyStatus = safeTrim(localStorage.getItem('license_status') || 'active');
-      if (legacyLicense && legacyTester && legacyEmail) {
-        const recovered = buildLicenseState(legacyLicense, legacyTester, legacyEmail, {
-          activated_at: safeTrim(localStorage.getItem('license_activated_at') || ''),
-          expires_at: legacyExpiry,
-          source: 'legacy_storage_recovered',
-          status: legacyStatus
-        });
-        localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(recovered));
-        return recovered;
-      }
-
-      return null;
-    }
-
-    static setLicenseData(licenseKey, testerId, email, extra = {}) {
-      const state = buildLicenseState(licenseKey, testerId, email, extra);
-      localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(state));
-      localStorage.setItem('license_key', state.license_key);
-      localStorage.setItem('kedrix_license_key', state.license_key);
-      localStorage.setItem('tester_id', state.tester_id);
-      localStorage.setItem('kedrix_tester_id', state.tester_id);
-      localStorage.setItem('license_email', state.email);
-      localStorage.setItem('kedrix_email', state.email);
-      localStorage.setItem('license_expires_at', state.expires_at || '');
-      localStorage.setItem('license_activated_at', state.activated_at || '');
-      localStorage.setItem('license_status', state.status || 'active');
-      localStorage.setItem('bw-license-valid', 'valid');
-      localStorage.setItem('kedrix_last_entry_source', state.source || 'app_entry_bridge');
-      sessionStorage.setItem('kedrix_last_bridge_at', nowIso());
-
-      try {
-        if (global.KedrixLicenseGuard && typeof global.KedrixLicenseGuard.sealLicense === 'function') {
-          global.KedrixLicenseGuard.sealLicense({
-            email: state.email,
-            testerId: state.tester_id,
-            status: state.status || 'active',
-            expiresAt: state.expires_at || ''
-          });
-        }
-      } catch (_err) {}
-
-      return state;
-    }
-
-    static clearLicenseData() {
-      [
-        LICENSE_STORAGE_KEY,
-        'license_key',
-        'kedrix_license_key',
-        'tester_id',
-        'kedrix_tester_id',
-        'license_email',
-        'kedrix_email',
-        'license_expires_at',
-        'license_activated_at',
-        'license_status',
-        'bw-license-valid',
-        'kedrix_last_entry_source',
-        'kedrix_trial_used'
-      ].forEach((key) => localStorage.removeItem(key));
-    }
-
-    static readUrlPayload() {
-      const url = new URL(global.location.href);
-      const params = url.searchParams;
-      const licenseKey = decodeParam(params.get('license') || params.get('license_key'));
-      const testerId = decodeParam(params.get('tester') || params.get('tester_id'));
-      const email = normalizeEmail(params.get('email'));
-      if (!licenseKey || !testerId || !email) return null;
-      return { license_key: licenseKey, tester_id: testerId, email, source: 'url_params' };
-    }
-
-    static cleanUrl() {
-      try {
-        const cleanUrl = global.location.pathname + (global.location.hash || '');
-        global.history.replaceState({}, document.title, cleanUrl);
-      } catch (_err) {}
-    }
-
-    static autoLogin() {
-      const payload = this.readUrlPayload();
-      if (payload) {
-        const saved = this.setLicenseData(payload.license_key, payload.tester_id, payload.email, {
-          source: payload.source,
-          status: 'active'
-        });
-        this.cleanUrl();
-        console.log('KEDRIX ENTRY BRIDGE OK', saved.tester_id);
-        return { success: true, data: saved, source: 'url_params' };
-      }
-
-      const existing = this.getLicenseData();
-      if (existing && existing.license_key && existing.tester_id && existing.email) {
-        localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify({ ...existing, last_check: nowIso() }));
-        return { success: true, data: existing, source: 'storage' };
-      }
-
-      return { success: false, error: 'no_valid_license' };
-    }
-
-    static async validateLicense(licenseKey, testerId) {
-      const endpoint = (global.KedrixRuntimeConfig && typeof global.KedrixRuntimeConfig.getEndpoint === 'function')
-        ? global.KedrixRuntimeConfig.getEndpoint('registry')
-        : '';
-      if (!endpoint) {
-        return { valid: false, error: 'missing_registry_endpoint' };
-      }
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'validate_license',
-            license_key: safeTrim(licenseKey),
-            tester_id: safeTrim(testerId),
-            source: 'app_validation'
-          }),
-          mode: 'cors',
-          credentials: 'omit',
-          cache: 'no-store'
-        });
-        const rawText = await response.text();
-        try {
-          return rawText ? JSON.parse(rawText) : { valid: false, error: 'empty_response' };
-        } catch (_err) {
-          return { valid: false, error: 'invalid_json_response', rawText };
-        }
-      } catch (error) {
-        return { valid: false, error: error && error.message ? error.message : 'network_error' };
-      }
-    }
-
-    static async ensureValidLicense() {
-      const result = this.autoLogin();
-      if (result.success) return true;
-      global.location.href = LANDING_URL;
-      return false;
-    }
-
-    static getCurrentTesterId() {
-      const data = this.getLicenseData();
-      return data ? data.tester_id : null;
-    }
-
-    static getCurrentEmail() {
-      const data = this.getLicenseData();
-      return data ? data.email : null;
-    }
-
-    static getCurrentLicenseKey() {
-      const data = this.getLicenseData();
-      return data ? data.license_key : null;
-    }
-
-    static logout() {
-      this.clearLicenseData();
-      try { sessionStorage.clear(); } catch (_err) {}
-      global.location.href = LANDING_URL;
-    }
-  }
-
-  class KedrixLicense {
+class KedrixLicense {
     constructor() {
-      this.limits = DEFAULT_LIMITS;
-      this.syncFromStorage();
+        this.endpoint = this.resolveEndpoint();
+        this.storage = {
+            email: 'license_email',
+            testerId: 'tester_id',
+            role: 'kedrix_role',
+            status: 'kedrix_license_status',
+            type: 'kedrix_license_type',
+            batch: 'kedrix_license_batch',
+            expiresAt: 'kedrix_license_expires_at',
+            checkedAt: 'kedrix_license_checked_at',
+            message: 'kedrix_license_message'
+        };
+
+        this.state = {
+            email: localStorage.getItem(this.storage.email) || '',
+            testerId: localStorage.getItem(this.storage.testerId) || '',
+            role: localStorage.getItem(this.storage.role) || 'guest',
+            status: localStorage.getItem(this.storage.status) || 'missing',
+            type: localStorage.getItem(this.storage.type) || 'beta',
+            batch: localStorage.getItem(this.storage.batch) || '',
+            expiresAt: localStorage.getItem(this.storage.expiresAt) || '',
+            checkedAt: localStorage.getItem(this.storage.checkedAt) || '',
+            message: localStorage.getItem(this.storage.message) || '',
+            accessAllowed: false
+        };
+
+        this.limits = {
+            denied: {
+                maxTransactions: 0,
+                maxCategories: 0,
+                csvImport: false,
+                aiAssistant: false,
+                voiceRecognition: false,
+                cloudSync: false,
+                customCategories: false,
+                advancedReports: false,
+                calendarExport: false
+            },
+            allowed: {
+                maxTransactions: Infinity,
+                maxCategories: Infinity,
+                csvImport: true,
+                aiAssistant: true,
+                voiceRecognition: true,
+                cloudSync: true,
+                customCategories: true,
+                advancedReports: true,
+                calendarExport: true
+            }
+        };
+
+        this.bootstrapPromise = this.bootstrap();
+        this.startHeartbeat();
     }
 
-    syncFromStorage() {
-      const data = LicenseSystem.getLicenseData();
-      this.state = data || null;
-      this.isPremium = !!(data && data.license_key && data.tester_id && data.email && this.getStatus() === 'active');
-      this.trialUsed = localStorage.getItem('kedrix_trial_used') === 'true';
-      return this.state;
+    resolveEndpoint() {
+        if (window.KedrixRuntimeConfig && typeof window.KedrixRuntimeConfig.getEndpoint === 'function') {
+            const endpoint = window.KedrixRuntimeConfig.getEndpoint('registry');
+            if (endpoint) return endpoint;
+        }
+        const meta = document.querySelector('meta[name="kedrix-beta-registry-endpoint"]');
+        if (meta && meta.content) return meta.content.trim();
+        return '';
     }
 
-    getStatus() {
-      const state = this.state || LicenseSystem.getLicenseData();
-      if (!state || !state.license_key || !state.tester_id || !state.email) return 'missing';
-      const status = String(state.status || 'active').trim().toLowerCase();
-      if (status) return status;
-      return 'active';
+    async bootstrap() {
+        this.injectGateStyles();
+        this.renderGate();
+
+        if (!this.state.email) {
+            this.showGate('missing');
+            return this.state;
+        }
+
+        await this.verifyRemote({
+            email: this.state.email,
+            testerId: this.state.testerId,
+            silent: true
+        });
+        return this.state;
     }
 
-    checkPremiumStatus() {
-      this.syncFromStorage();
-      return this.hasFullPremiumAccess();
+    async whenReady() {
+        return this.bootstrapPromise;
     }
 
-    hasFullPremiumAccess() {
-      this.syncFromStorage();
-      return this.getStatus() === 'active';
-    }
+    async verifyRemote({ email, testerId, silent = false } = {}) {
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        const normalizedTesterId = String(testerId || '').trim();
 
-    getPlanInfo() {
-      const active = this.hasFullPremiumAccess();
-      return active
-        ? { name: 'Premium', status: 'Attivo', remaining: this.state && this.state.email ? this.state.email : '' }
-        : { name: 'Free', status: 'Limitato' };
-    }
+        if (!normalizedEmail && !normalizedTesterId) {
+            this.updateState({
+                status: 'missing',
+                message: 'Inserisci l’email con cui hai richiesto l’accesso beta.',
+                accessAllowed: false
+            });
+            this.showGate('missing');
+            return { ok: false, reason: 'missing_credentials' };
+        }
 
-    canUseFeature(feature) {
-      const active = this.hasFullPremiumAccess();
-      if (active) return true;
-      if (feature === 'transactions') return true;
-      return false;
-    }
+        this.setGateLoading(true, 'Verifica accesso beta in corso…');
 
-    canAddTransaction(count) {
-      if (this.hasFullPremiumAccess()) return true;
-      return Number(count || 0) < this.limits.free.maxTransactions;
-    }
+        try {
+            const payload = {
+                    action: 'check_license',
+                    email: normalizedEmail,
+                    testerId: normalizedTesterId,
+                    tester_id: normalizedTesterId,
+                    licenseKey: normalizedTesterId,
+                    license_key: normalizedTesterId,
+                    source: 'kedrix-app',
+                    client_sig: (window.KedrixLicenseGuard && window.KedrixLicenseGuard.sign)
+                        ? window.KedrixLicenseGuard.sign({ email: normalizedEmail, testerId: normalizedTesterId })
+                        : ''
+                };
 
-    getCurrentLimits() {
-      return this.hasFullPremiumAccess() ? this.limits.premium : this.limits.free;
-    }
+            const apiResult = (window.KedrixAPI && window.KedrixAPI.request)
+                ? await window.KedrixAPI.request(this.endpoint, payload, { meta: { route: 'check_license' } })
+                : null;
 
-    getUpgradeMessage(feature) {
-      const target = safeTrim(feature || 'questa funzionalità');
-      return `${target} è disponibile con accesso Premium beta.`;
-    }
+            let data = apiResult ? (apiResult.data || {}) : {};
+            if (!data || typeof data !== 'object') data = {};
 
-    startTrial() {
-      if (this.hasFullPremiumAccess() || this.trialUsed) return false;
-      localStorage.setItem('kedrix_trial_used', 'true');
-      this.trialUsed = true;
-      return false;
+            const status = String(data.license_status || 'missing').trim() || 'missing';
+            const accessAllowed = !!data.access_allowed;
+
+            this.updateState({
+                email: data.email || normalizedEmail,
+                testerId: data.tester_id || normalizedTesterId,
+                role: data.role || 'tester',
+                status: status,
+                type: data.license_type || 'beta',
+                batch: data.batch || '',
+                expiresAt: data.expires_at || '',
+                checkedAt: new Date().toISOString(),
+                message: data.message || this.messageForStatus(status),
+                accessAllowed: accessAllowed
+            });
+
+            if (accessAllowed) {
+                if (window.KedrixSessionManager && window.KedrixSessionManager.refresh) {
+                    window.KedrixSessionManager.refresh();
+                }
+                if (window.KedrixLicenseGuard && window.KedrixLicenseGuard.sealLicense) {
+                    window.KedrixLicenseGuard.sealLicense({
+                        email: data.email || normalizedEmail,
+                        testerId: data.tester_id || normalizedTesterId,
+                        status,
+                        expiresAt: data.expires_at || ''
+                    });
+                }
+                this.hideGate();
+                this.syncLegacyPremiumFlags(true);
+            } else {
+                this.syncLegacyPremiumFlags(false);
+                this.showGate(status);
+                if (!silent) this.writeGateMessage(this.state.message);
+            }
+
+            return data;
+        } catch (error) {
+            this.updateState({
+                status: 'error',
+                message: 'Impossibile verificare la licenza beta. Controlla la connessione e riprova.',
+                accessAllowed: false,
+                checkedAt: new Date().toISOString()
+            });
+            this.syncLegacyPremiumFlags(false);
+            if (window.KedrixLicenseGuard && window.KedrixLicenseGuard.softInvalidate) {
+                window.KedrixLicenseGuard.softInvalidate('network_error');
+            }
+            this.showGate('error');
+            this.writeGateMessage(this.state.message);
+            return { ok: false, reason: 'network_error', error: String(error && error.message ? error.message : error) };
+        } finally {
+            this.setGateLoading(false);
+        }
     }
 
     async activateLicense(email, key) {
-      const normalizedEmail = normalizeEmail(email);
-      const normalizedKey = safeTrim(key);
-      const current = LicenseSystem.getLicenseData();
-      if (current && normalizedEmail === current.email && normalizedKey === current.license_key) {
-        LicenseSystem.setLicenseData(current.license_key, current.tester_id, current.email, {
-          activated_at: current.activated_at,
-          expires_at: current.expires_at,
-          source: 'manual_reconfirm',
-          status: 'active'
-        });
-        this.syncFromStorage();
-        return true;
-      }
-
-      if (!normalizedEmail || !normalizedKey) return false;
-
-      const testerFromStorage = current && current.tester_id ? current.tester_id : safeTrim(localStorage.getItem('tester_id'));
-      if (!testerFromStorage) return false;
-
-      const validation = await LicenseSystem.validateLicense(normalizedKey, testerFromStorage);
-      const looksValid = !!(validation && (validation.valid || validation.ok || String(validation.status || '').toLowerCase() === 'active'));
-      if (!looksValid) return false;
-
-      LicenseSystem.setLicenseData(normalizedKey, testerFromStorage, normalizedEmail, {
-        activated_at: current && current.activated_at ? current.activated_at : nowIso(),
-        expires_at: safeTrim(validation.expires_at || ''),
-        source: 'validated_activation',
-        status: safeTrim(validation.status || 'active') || 'active'
-      });
-      this.syncFromStorage();
-      return true;
+        const result = await this.verifyRemote({ email, testerId: key, silent: false });
+        return !!(result && result.access_allowed);
     }
-  }
 
-  global.LicenseSystem = LicenseSystem;
-  global.KedrixLicense = KedrixLicense;
-  global.KedrixEntryBridge = {
-    landingUrl: LANDING_URL,
-    appUrl: APP_URL,
-    autoLogin: () => LicenseSystem.autoLogin(),
-    getLicenseData: () => LicenseSystem.getLicenseData()
-  };
+    startTrial() {
+        return false;
+    }
 
-  LicenseSystem.autoLogin();
- const result = LicenseSystem.autoLogin();
+    isTrialActive() {
+        return false;
+    }
 
-if (result && result.success) {
-  console.log('🔁 Sync license after bridge');
-  if (global.KedrixLicenseInstance) {
-    global.KedrixLicenseInstance.syncFromStorage();
-  }
+    checkPremiumStatus() {
+        return this.hasFullPremiumAccess();
+    }
+
+    hasFullPremiumAccess() {
+        return this.state.accessAllowed === true;
+    }
+
+    getCurrentLimits() {
+        return this.hasFullPremiumAccess() ? this.limits.allowed : this.limits.denied;
+    }
+
+    canAddTransaction(currentCount) {
+        if (!this.hasFullPremiumAccess()) return false;
+        const limits = this.getCurrentLimits();
+        return currentCount < limits.maxTransactions;
+    }
+
+    canUseFeature(feature) {
+        const limits = this.getCurrentLimits();
+        return limits[feature] === true;
+    }
+
+    getUpgradeMessage(_feature) {
+        return 'Accesso beta richiesto. Inserisci un’email autorizzata o attendi l’attivazione della licenza.';
+    }
+
+    getRemainingDays() {
+        if (!this.state.expiresAt) return 0;
+        const expiry = new Date(this.state.expiresAt);
+        if (Number.isNaN(expiry.getTime())) return 0;
+        const diff = expiry.getTime() - Date.now();
+        return Math.max(0, Math.ceil(diff / 86400000));
+    }
+
+    getStatus() {
+        return this.state.status || 'missing';
+    }
+
+    getPlanInfo() {
+        const remainingDays = this.getRemainingDays();
+        if (this.state.accessAllowed) {
+            return {
+                name: this.state.type === 'admin' ? 'Admin' : (this.state.type === 'internal' ? 'Internal' : 'Beta'),
+                status: this.state.batch ? `Batch ${this.state.batch}` : 'Attivo',
+                remaining: remainingDays > 0 ? `${remainingDays} giorni rimanenti` : 'Accesso attivo',
+                color: '#10b981'
+            };
+        }
+
+        const labels = {
+            pending: 'In attesa',
+            expired: 'Scaduto',
+            revoked: 'Revocato',
+            suspended: 'Sospeso',
+            missing: 'Non attivo',
+            error: 'Verifica richiesta'
+        };
+
+        return {
+            name: 'Beta',
+            status: labels[this.state.status] || 'Non attivo',
+            remaining: this.state.message || 'Accesso beta non attivo',
+            color: '#6b7280'
+        };
+    }
+
+    messageForStatus(status) {
+        const messages = {
+            active: 'Accesso beta attivo.',
+            pending: 'Richiesta ricevuta. L’accesso verrà attivato appena il tuo batch sarà aperto.',
+            expired: 'La tua licenza beta è scaduta.',
+            revoked: 'Il tuo accesso è stato revocato.',
+            suspended: 'Il tuo accesso è temporaneamente sospeso.',
+            missing: 'Email non ancora autorizzata alla beta.',
+            error: 'Impossibile verificare la licenza beta.'
+        };
+        return messages[status] || messages.missing;
+    }
+
+    updateState(nextState) {
+        this.state = { ...this.state, ...nextState };
+        localStorage.setItem(this.storage.email, this.state.email || '');
+        localStorage.setItem(this.storage.testerId, this.state.testerId || '');
+        localStorage.setItem(this.storage.role, this.state.role || 'guest');
+        localStorage.setItem(this.storage.status, this.state.status || 'missing');
+        localStorage.setItem(this.storage.type, this.state.type || 'beta');
+        localStorage.setItem(this.storage.batch, this.state.batch || '');
+        localStorage.setItem(this.storage.expiresAt, this.state.expiresAt || '');
+        localStorage.setItem(this.storage.checkedAt, this.state.checkedAt || '');
+        localStorage.setItem(this.storage.message, this.state.message || '');
+        if (this.state.email) localStorage.setItem('bw-license-email', this.state.email);
+    }
+
+    syncLegacyPremiumFlags(isAllowed) {
+        this.isPremium = isAllowed;
+        localStorage.setItem('bw-license-valid', isAllowed ? 'valid' : 'invalid');
+        localStorage.setItem('bw-license-expiry', this.state.expiresAt || '');
+    }
+
+    renderGate() {
+        if (document.getElementById('kedrixBetaGate')) return;
+
+        const gate = document.createElement('div');
+        gate.id = 'kedrixBetaGate';
+        gate.className = 'kedrix-beta-gate is-visible';
+        gate.innerHTML = `
+            <div class="kedrix-beta-gate__card" role="dialog" aria-modal="true" aria-labelledby="kedrixBetaGateTitle">
+                <div class="kedrix-beta-gate__eyebrow">Kedrix — Controlled Beta</div>
+                <h1 id="kedrixBetaGateTitle" class="kedrix-beta-gate__title">Accesso beta controllato</h1>
+                <p id="kedrixBetaGateMessage" class="kedrix-beta-gate__message">Inserisci l’email con cui hai richiesto l’accesso beta.</p>
+                <form id="kedrixBetaGateForm" class="kedrix-beta-gate__form">
+                    <label>
+                        <span>Email autorizzata</span>
+                        <input id="kedrixBetaEmail" type="email" autocomplete="email" placeholder="nome@email.com" required />
+                    </label>
+                    <label>
+                        <span>Tester ID o codice accesso (opzionale)</span>
+                        <input id="kedrixBetaCode" type="text" autocomplete="off" placeholder="kdx_..." />
+                    </label>
+                    <div class="kedrix-beta-gate__actions">
+                        <button id="kedrixBetaSubmit" type="submit">Verifica accesso</button>
+                        <a href="https://kedrix-site-81e099.gitlab.io/" target="_blank" rel="noreferrer">Richiedi accesso beta</a>
+                    </div>
+                </form>
+                <div id="kedrixBetaGateStatus" class="kedrix-beta-gate__status"></div>
+            </div>
+        `;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!document.body.contains(gate)) {
+                document.body.appendChild(gate);
+                this.bindGateEvents();
+                const emailField = document.getElementById('kedrixBetaEmail');
+                const codeField = document.getElementById('kedrixBetaCode');
+                if (emailField && this.state.email) emailField.value = this.state.email;
+                if (codeField && this.state.testerId) codeField.value = this.state.testerId;
+            }
+        });
+
+        if (document.body) {
+            document.body.appendChild(gate);
+            this.bindGateEvents();
+            const emailField = document.getElementById('kedrixBetaEmail');
+            const codeField = document.getElementById('kedrixBetaCode');
+            if (emailField && this.state.email) emailField.value = this.state.email;
+            if (codeField && this.state.testerId) codeField.value = this.state.testerId;
+        }
+    }
+
+    bindGateEvents() {
+        const form = document.getElementById('kedrixBetaGateForm');
+        if (!form || form.dataset.bound === 'true') return;
+        form.dataset.bound = 'true';
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('kedrixBetaEmail')?.value || '';
+            const code = document.getElementById('kedrixBetaCode')?.value || '';
+            await this.verifyRemote({ email, testerId: code, silent: false });
+        });
+    }
+
+    injectGateStyles() {
+        if (document.getElementById('kedrixBetaGateStyles')) return;
+        const style = document.createElement('style');
+        style.id = 'kedrixBetaGateStyles';
+        style.textContent = `
+            .kedrix-beta-gate { position: fixed; inset: 0; z-index: 2147483647; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(2, 6, 23, 0.88); backdrop-filter: blur(8px); }
+            .kedrix-beta-gate.is-visible { display: flex; }
+            .kedrix-beta-gate__card { width: min(92vw, 460px); background: #0f172a; color: #e2e8f0; border: 1px solid rgba(148,163,184,0.22); border-radius: 22px; box-shadow: 0 24px 80px rgba(0,0,0,0.45); padding: 24px; }
+            .kedrix-beta-gate__eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #38bdf8; margin-bottom: 10px; }
+            .kedrix-beta-gate__title { margin: 0 0 10px; font-size: 28px; line-height: 1.1; color: #f8fafc; }
+            .kedrix-beta-gate__message { margin: 0 0 18px; color: #cbd5e1; font-size: 15px; line-height: 1.45; }
+            .kedrix-beta-gate__form { display: grid; gap: 14px; }
+            .kedrix-beta-gate__form label { display: grid; gap: 8px; font-size: 13px; color: #cbd5e1; }
+            .kedrix-beta-gate__form input { width: 100%; box-sizing: border-box; border-radius: 14px; border: 1px solid rgba(148,163,184,0.28); background: rgba(15,23,42,0.76); color: #f8fafc; padding: 14px 16px; font-size: 15px; outline: none; }
+            .kedrix-beta-gate__form input:focus { border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56,189,248,0.16); }
+            .kedrix-beta-gate__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+            .kedrix-beta-gate__actions button, .kedrix-beta-gate__actions a { appearance: none; border: 0; border-radius: 999px; padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; }
+            .kedrix-beta-gate__actions button { background: linear-gradient(135deg, #38bdf8, #14b8a6); color: #082f49; }
+            .kedrix-beta-gate__actions a { background: rgba(148,163,184,0.14); color: #f8fafc; }
+            .kedrix-beta-gate__status { margin-top: 14px; min-height: 20px; font-size: 13px; color: #fbbf24; }
+            .kedrix-beta-gate__status.is-success { color: #34d399; }
+            .kedrix-beta-gate__status.is-error { color: #fca5a5; }
+            body.kedrix-beta-locked { overflow: hidden !important; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    setGateLoading(isLoading, message = '') {
+        const submit = document.getElementById('kedrixBetaSubmit');
+        if (submit) {
+            submit.disabled = isLoading;
+            submit.textContent = isLoading ? 'Verifica…' : 'Verifica accesso';
+        }
+        if (message) this.writeGateMessage(message, 'neutral');
+    }
+
+    writeGateMessage(message, tone = 'neutral') {
+        const status = document.getElementById('kedrixBetaGateStatus');
+        const paragraph = document.getElementById('kedrixBetaGateMessage');
+        if (paragraph && message) paragraph.textContent = message;
+        if (!status) return;
+        status.textContent = message || '';
+        status.classList.remove('is-success', 'is-error');
+        if (tone === 'success') status.classList.add('is-success');
+        if (tone === 'error') status.classList.add('is-error');
+    }
+
+    showGate(status = 'missing') {
+        const gate = document.getElementById('kedrixBetaGate');
+        if (!gate) return;
+        gate.classList.add('is-visible');
+        document.body.classList.add('kedrix-beta-locked');
+        const message = this.state.message || this.messageForStatus(status);
+        const tone = status === 'error' ? 'error' : (status === 'pending' ? 'neutral' : 'neutral');
+        this.writeGateMessage(message, tone);
+    }
+
+    hideGate() {
+        const gate = document.getElementById('kedrixBetaGate');
+        if (gate) gate.classList.remove('is-visible');
+        document.body.classList.remove('kedrix-beta-locked');
+        this.writeGateMessage('Accesso beta attivo.', 'success');
+    }
+
+    startHeartbeat() {
+        if (this._heartbeatTimer) return;
+        this._heartbeatTimer = window.setInterval(async () => {
+            if (!this.state || !this.state.email || !this.state.accessAllowed) return;
+            const checkedAt = Date.parse(this.state.checkedAt || '') || 0;
+            if (Date.now() - checkedAt < 1000 * 60 * 10) return;
+            if (window.KedrixLicenseGuard && !window.KedrixLicenseGuard.verifySeal()) {
+                this.updateState({
+                    status: 'error',
+                    message: 'Sessione beta non valida. Verifica nuovamente l’accesso.',
+                    accessAllowed: false,
+                    checkedAt: new Date().toISOString()
+                });
+                this.syncLegacyPremiumFlags(false);
+                this.showGate('error');
+                return;
+            }
+            await this.verifyRemote({
+                email: this.state.email,
+                testerId: this.state.testerId,
+                silent: true
+            });
+        }, 1000 * 60 * 3);
+    }
+
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = KedrixLicense;
+}
+
+try { globalThis.KedrixLicense = KedrixLicense; } catch(e) {}
+try { window.KedrixLicense = KedrixLicense; } catch(e) {}
+try { globalThis.BudgetWiseLicense = KedrixLicense; } catch(e) {}
+try { window.BudgetWiseLicense = KedrixLicense; } catch(e) {}

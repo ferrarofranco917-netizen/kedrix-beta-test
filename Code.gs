@@ -7,27 +7,14 @@ const FEEDBACK_SHEET_NAME = 'FEEDBACK';
 const LICENSES_SHEET_NAME = 'LICENSES';
 const BETA_REQUESTS_SHEET_NAME = 'BETA_REQUESTS';
 const SPREADSHEET_ID = '1-dCY39nipXvI8E9ujnwnGTyy_2Oo0cncwatB3gDJGOk';
-const BETA_APP_URL = 'https://beta.kedrix.tech';
 
 function doGet(e) {
   try {
     const params = (e && e.parameter) || {};
     const action = normalizeAction_(params.action || 'health');
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-    if (action === 'register_beta_request') {
-      return jsonResponse_(registerBetaRequestAction_({
-        email: params.email || '',
-        name: params.name || params.nome || '',
-        reason: params.reason || '',
-        commitment: params.commitment || '',
-        testerId: params.testerId || params.tester_id || '',
-        source: params.source || 'landing-auto',
-        note: params.note || ''
-      }, ss));
-    }
 
     if (action === 'check_license') {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
       return jsonResponse_(checkLicenseAction_({
         email: params.email || params.user_email || '',
         testerId: params.testerId || params.tester_id || '',
@@ -182,23 +169,17 @@ function registerBetaRequestAction_(payload, ss) {
   ensureLicensesHeader_(licensesSheet);
 
   const email = normalizeEmail_(payload.email);
-  const name = safeStr_(payload.name || payload.nome);
-  const reason = safeStr_(payload.reason || 'auto_beta_onboarding');
-  const commitment = safeStr_(payload.commitment || 'accepted beta flow');
-  const source = safeStr_(payload.source || 'landing-auto');
+  const name = safeStr_(payload.name);
+  const reason = safeStr_(payload.reason);
+  const commitment = safeStr_(payload.commitment);
+  const source = safeStr_(payload.source || 'kedrix-site');
 
   if (!email) {
     return { ok: false, error: 'email_required' };
   }
 
-  const now = new Date();
-  const expiry = new Date(now);
-  expiry.setDate(expiry.getDate() + 14);
-
-  const batch = 'BETA-14D';
-  const status = 'active';
-
   const existingRequest = findRowByValue_(requestsSheet, 3, email);
+  const now = new Date();
 
   if (existingRequest.rowIndex) {
     requestsSheet.getRange(existingRequest.rowIndex, 1, 1, 10).setValues([[
@@ -208,8 +189,8 @@ function registerBetaRequestAction_(payload, ss) {
       name || existingRequest.values[3] || '',
       reason || existingRequest.values[4] || '',
       commitment || existingRequest.values[5] || '',
-      status,
-      batch,
+      safeStr_(payload.status || existingRequest.values[6] || 'pending'),
+      safeStr_(payload.batch || existingRequest.values[7] || ''),
       source,
       safeStr_(payload.note || existingRequest.values[9] || '')
     ]]);
@@ -221,74 +202,64 @@ function registerBetaRequestAction_(payload, ss) {
       name,
       reason,
       commitment,
-      status,
-      batch,
+      'pending',
+      '',
       source,
       ''
     ]);
   }
 
-  const existingLicense = findLicenseRow_(licensesSheet, {
-    email: email,
-    testerId: payload.testerId || payload.tester_id || ''
-  });
-
-  let testerId = existingLicense.license.tester_id || safeStr_(payload.testerId || payload.tester_id) || generateTesterId_();
+  const existingLicense = findLicenseRow_(licensesSheet, { email: email, testerId: payload.testerId || '' });
+  let testerId = existingLicense.license.tester_id || safeStr_(payload.testerId) || generateTesterId_();
 
   if (!existingLicense.rowIndex) {
     licensesSheet.appendRow([
       testerId,
       email,
-      'active',
-      'beta_14gg',
-      now,
-      expiry,
-      batch,
+      'pending',
+      'beta',
+      '',
+      '',
+      '',
       'no',
+      '',
       now,
-      now,
-      'Auto-created from landing beta request',
+      '',
       source,
-      0,
+      '',
       now,
       now
     ]);
   } else {
     const rowIndex = existingLicense.rowIndex;
     const current = existingLicense.license;
-
     licensesSheet.getRange(rowIndex, 1, 1, 15).setValues([[
       current.tester_id || testerId,
       email || current.email,
-      'active',
-      'beta_14gg',
-      current.data_attivazione || now,
-      expiry,
-      batch,
+      current.stato || 'pending',
+      current.tipo_licenza || 'beta',
+      current.data_attivazione || '',
+      current.data_scadenza || '',
+      current.batch || '',
       current.revocata_si_no || 'no',
-      now,
-      now,
-      current.note || 'Updated from landing beta request',
+      current.ultimo_accesso || '',
+      current.ultimo_check || now,
+      current.note || '',
       source || current.source || '',
-      current.grace_days || 0,
+      current.grace_days || '',
       current.created_at || now,
       now
     ]]);
-
     testerId = current.tester_id || testerId;
   }
-
-  SpreadsheetApp.flush();
 
   return {
     ok: true,
     action: 'register_beta_request',
-    status: 'active',
+    status: 'pending',
     tester_id: testerId,
     email: email,
-    expires_at: normalizeDateOutput_(expiry),
-    beta_url: BETA_APP_URL,
-    message: 'Accesso beta attivo per 14 giorni'
+    message: 'Richiesta beta registrata correttamente'
   };
 }
 

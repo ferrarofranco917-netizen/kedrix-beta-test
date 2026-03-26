@@ -1,13 +1,13 @@
 (function (global) {
   const CONFIG = {
-    build: '20260325_stage_entry_fix_v1',
+    build: '20260322_refactor_i18n_v1a',
     channel: 'beta',
-    serviceWorkerVersion: '20260325_stage_entry_fix_v1',
+    serviceWorkerVersion: '20260322_cf1',
     serviceWorkerPath: './sw.js',
     scope: './',
     endpoints: {
-      registry: 'https://script.google.com/macros/s/AKfycbyZIeJRQ6HICOzafg-9uZXTMPfDV-lEkUYe-FnNei6ldP9Smr9JUv5sMiaN5WUiM29F/exec',
-      tracking: 'https://script.google.com/macros/s/AKfycbyZIeJRQ6HICOzafg-9uZXTMPfDV-lEkUYe-FnNei6ldP9Smr9JUv5sMiaN5WUiM29F/exec'
+      registry: 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec',
+      tracking: 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec'
     }
   };
 
@@ -27,14 +27,6 @@
     } catch (_err) {
       return '';
     }
-  }
-
-  function normalizeExecUrl(value) {
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-    if (/\/exec(?:\?|#|$)/.test(raw)) return raw;
-    if (/script\.google\.com\/macros\/s\//.test(raw)) return raw.replace(/\/?$/, '/exec');
-    return raw;
   }
 
   const api = {
@@ -63,24 +55,25 @@
         tracking: 'kedrix-tracking-endpoint'
       };
 
-      const metaValue = normalizeExecUrl(readMeta(metaKeys[normalizedKind] || ''));
+      const metaValue = readMeta(metaKeys[normalizedKind] || '');
       if (metaValue) return metaValue;
 
       const storageCandidates = storageKeys[normalizedKind] || [];
       for (const key of storageCandidates) {
-        const value = normalizeExecUrl(readStorage(key));
+        const value = readStorage(key);
         if (value) return value;
       }
 
-      return normalizeExecUrl(CONFIG.endpoints[normalizedKind] || '');
+      return CONFIG.endpoints[normalizedKind] || '';
     }
   };
 
+
   try {
-    const registry = api.getEndpoint('registry');
-    const tracking = api.getEndpoint('tracking');
-    if (registry) localStorage.setItem('kedrix_registry_endpoint', registry);
-    if (tracking) localStorage.setItem('kedrix_tracking_endpoint', tracking);
+    const registryMeta = api.getEndpoint('registry');
+    const trackingMeta = api.getEndpoint('tracking');
+    if (registryMeta) localStorage.setItem('kedrix_registry_endpoint', registryMeta);
+    if (trackingMeta) localStorage.setItem('kedrix_tracking_endpoint', trackingMeta);
   } catch (_err) {}
 
   global.KedrixRuntimeConfig = api;

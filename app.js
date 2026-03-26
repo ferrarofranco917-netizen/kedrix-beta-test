@@ -3644,103 +3644,94 @@ detectCsvDelimiter(text, fallback = ',') {
     }
 
     uiText(key, vars) {
-    const dict = this.getUiTextSet();
-    let str = dict[key] ?? key;
-    if (vars && typeof vars === 'object') {
-        for (const [k, v] of Object.entries(vars)) {
-            str = String(str).replaceAll(`{${k}}`, String(v));
+        const dict = this.getUiTextSet();
+        let str = dict[key] ?? key;
+        if (vars && typeof vars === 'object') {
+            for (const [k, v] of Object.entries(vars)) {
+                str = String(str).replaceAll(`{${k}}`, String(v));
+            }
         }
+        return str;
     }
-    return str;
+
+
+ applyLanguage() {
+        console.log('🌐 Cambio lingua a:', this.data.language);
+        // Applica traduzioni a tutti gli elementi con data-i18n (testi, placeholder, aria-label)
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (!key) return;
+            const val = this.t(key);
+            const tag = (el.tagName || '').toUpperCase();
+
+            // placeholder per input/textarea
+            if ((tag === 'INPUT' || tag === 'TEXTAREA') && el.hasAttribute('placeholder')) {
+                el.setAttribute('placeholder', val);
+                return;
+            }
+
+           // Se serve HTML (es. <strong>, <br>), abilitalo solo dove dichiarato
+if (el.hasAttribute('data-i18n-html')) {
+    el.innerHTML = val;
+} else {
+    el.textContent = val;
 }
+        });
 
-applyLanguage(lang) {
-    try {
-        console.log("🌐 Cambio lingua a:", lang);
-
-        const runtimeLang = lang || this.getRuntimeLanguage?.() || this.data?.language || 'it';
-
-        const safeGet = (id) => {
-            try { return document.getElementById(id); } catch (_e) { return null; }
+        const runtimeLang = this.getRuntimeLanguage();
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect) languageSelect.value = runtimeLang;
+        const subtitleEl = document.querySelector('.subtitle');
+        if (subtitleEl) subtitleEl.textContent = this.t('subtitle');
+        if (window.KedrixI18n && typeof window.KedrixI18n.setDocumentLanguage === 'function') {
+            window.KedrixI18n.setDocumentLanguage(runtimeLang);
+            if (typeof window.KedrixI18n.applyBootstrapTranslations === 'function') {
+                window.KedrixI18n.applyBootstrapTranslations(document, runtimeLang);
+            }
+        } else {
+            document.documentElement.lang = runtimeLang;
+        }
+        document.title = this.t('docTitle');
+        
+        const summaryLabels = document.querySelectorAll('.summary-label');
+        if (summaryLabels.length >= 3) {
+            summaryLabels[0].textContent = this.t('budget');
+            summaryLabels[1].textContent = this.t('remaining');
+            summaryLabels[2].textContent = this.t('days');
+        }
+        
+        const headingMap = {
+            incomesTitle: 'incomes',
+            fixedTitle: 'fixed',
+            variableTitle: 'variable',
+            chartTitle: 'chart',
+            wiseForecastTitle: 'wiseForecastTitle',
+            wiseScoreHomeTitle: null,
+            calendarToolsTitle: 'calendarToolsTitle'
         };
-
-        const safeQuery = (selector) => {
-            try { return document.querySelector(selector); } catch (_e) { return null; }
-        };
-
-        const safeQueryAll = (selector) => {
-            try { return document.querySelectorAll(selector) || []; } catch (_e) { return []; }
-        };
+        Object.entries(headingMap).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (id === 'wiseScoreHomeTitle') {
+                el.textContent = 'WiseScore™';
+                return;
+            }
+            if (key) el.textContent = this.t(key);
+        });
+        
+        const incomeBadge = document.getElementById('badge');
+        if (incomeBadge) incomeBadge.textContent = this.t('badge');
 
         const setText = (id, value, useHtml = false) => {
-            const el = safeGet(id);
+            const el = document.getElementById(id);
             if (!el) return;
-            if (useHtml) el.innerHTML = value ?? '';
-            else el.textContent = value ?? '';
+            if (useHtml) el.innerHTML = value;
+            else el.textContent = value;
         };
-
         const setPlaceholder = (id, value) => {
-            const el = safeGet(id);
-            if (!el) return;
-            el.placeholder = value ?? '';
+            const el = document.getElementById(id);
+            if (el) el.placeholder = value;
         };
-
-        const setSelectorText = (selector, value, useHtml = false) => {
-            const el = safeQuery(selector);
-            if (!el) return;
-            if (useHtml) el.innerHTML = value ?? '';
-            else el.textContent = value ?? '';
-        };
-
-        const setOptionTextByValue = (selectId, value, text) => {
-            const select = safeGet(selectId);
-            if (!select?.options?.length) return;
-            for (let i = 0; i < select.options.length; i++) {
-                if (String(select.options[i].value) === String(value)) {
-                    select.options[i].text = text;
-                }
-            }
-        };
-
-        const settingLabels = safeQueryAll('.setting-item label');
-        if (settingLabels.length >= 3) {
-            settingLabels[0].innerHTML = this.t('thresholdLabel');
-            settingLabels[1].innerHTML = this.t('languageLabel');
-            settingLabels[2].innerHTML = this.t('backupLabel');
-        }
-
-        const suggestionChips = safeQueryAll('.suggestion-chip');
-        if (suggestionChips.length >= 4) {
-            suggestionChips[0].textContent = this.t('suggestion1');
-            suggestionChips[1].textContent = this.t('suggestion2');
-            suggestionChips[2].textContent = this.t('suggestion3');
-            suggestionChips[3].textContent = this.t('suggestion4');
-        }
-
-        const delimiterSelect = safeGet('csvDelimiter');
-        if (delimiterSelect?.options?.length >= 2) {
-            delimiterSelect.options[0].text = runtimeLang === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
-            delimiterSelect.options[1].text = runtimeLang === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
-        }
-
-        const separatorSelect = safeGet('csvSeparator');
-        if (separatorSelect?.options?.length >= 3) {
-            separatorSelect.options[0].text = this.t('csvComma');
-            separatorSelect.options[1].text = this.t('csvSemicolon');
-            separatorSelect.options[2].text = this.t('csvTab');
-        }
-
-        const expenseCategory = safeGet('expenseCategory');
-        if (expenseCategory?.options?.length) {
-            for (let i = 0; i < expenseCategory.options.length; i++) {
-                const option = expenseCategory.options[i];
-                if (!option || !option.value) continue;
-                const translated = this.t(`category${option.value}`);
-                if (translated && translated !== `category${option.value}`) {
-                    option.text = translated;
-                }
-            }
-        }
 
         const betaUi = {
             it: {
@@ -3788,7 +3779,6 @@ applyLanguage(lang) {
                 accessSubmit: 'Vérifier l’accès'
             }
         };
-
         const betaCopy = betaUi[runtimeLang] || betaUi.it;
         setText('betaSettingsTitle', betaCopy.settingsTitle);
         setText('betaSettingsText', betaCopy.settingsText);
@@ -3803,23 +3793,20 @@ applyLanguage(lang) {
 
         setText('addIncomeBtn', this.t('addIncome'), true);
         setText('addFixedBtn', this.t('addFixed'), true);
-
-        const resetFixedBtn = safeGet('resetFixedBtn');
+        const resetFixedBtn = document.getElementById('resetFixedBtn');
         if (resetFixedBtn) resetFixedBtn.innerHTML = this.t('resetFixed');
-
         setText('addExpenseBtn', this.t('addExpense'), true);
         setText('resetDayBtn', this.t('resetDay'), true);
         setText('applySaveBtn', this.t('applySavings'));
         setText('backupBtn', this.t('backup'), true);
         setText('restoreBtn', this.t('restore'), true);
 
-        const loadDemoBtn = safeGet('loadDemoBtn');
+        const loadDemoBtn = document.getElementById('loadDemoBtn');
         if (loadDemoBtn) loadDemoBtn.textContent = this.t('onboardingDemo');
-
         setText('resetAllBtn', this.t('resetAll'), true);
         setText('exportCalendarBtn', this.t('export'));
         setText('sendChatBtn', this.t('send'));
-
+        
         setPlaceholder('incomeDesc', this.t('incomeDesc'));
         setPlaceholder('incomeAmount', this.t('incomeAmount'));
         setPlaceholder('fixedName', this.t('fixedName'));
@@ -3829,33 +3816,60 @@ applyLanguage(lang) {
         setPlaceholder('expenseAmount', this.t('expenseAmount'));
         setPlaceholder('expenseSubCategory', this.t('expenseSubCategory'));
         setPlaceholder('chatInput', this.t('chatPlaceholder'));
-        setPlaceholder('searchExpenses', this.t('searchPlaceholder'));
-
-        setSelectorText('.date-selector label', this.t('dateLabel'));
-
-        const halfLabels = safeQueryAll('.input-group.half label');
-        if (halfLabels.length >= 1) halfLabels[0].textContent = this.t('dayLabel');
-        if (halfLabels.length >= 2) halfLabels[1].textContent = this.t('endDateLabel');
-
+        
+        const dateLabel = document.querySelector('.date-selector label');
+        if (dateLabel) dateLabel.textContent = this.t('dateLabel');
+        
+        const dayLabel = document.querySelector('.input-group.half label');
+        if (dayLabel) dayLabel.textContent = this.t('dayLabel');
+        
+        const endDateLabel = document.querySelectorAll('.input-group.half label')[1];
+        if (endDateLabel) endDateLabel.textContent = this.t('endDateLabel');
+        
         setText('fixedVoiceStatus', this.t('micFixed'));
         setText('voiceStatus', this.t('micVariable'));
-        setText('fixedHelp', this.t('helpFixed'));
+        
+        const helpFixed = document.getElementById('fixedHelp');
+        if (helpFixed) helpFixed.textContent = this.t('helpFixed');
+        
         setText('chartNote', this.t('chartNote'));
-
-        setSelectorText('.input-group label[for="savePercent"]', this.t('percentLabel'));
-        setSelectorText('.input-group label[for="saveGoal"]', this.t('goalLabel'));
-
-        const welcomeMessage = safeQuery('.chat-message.bot .message-text');
+        
+        const percentLabel = document.querySelector('.input-group label[for="savePercent"]');
+        if (percentLabel) percentLabel.textContent = this.t('percentLabel');
+        
+        const goalLabel = document.querySelector('.input-group label[for="saveGoal"]');
+        if (goalLabel) goalLabel.textContent = this.t('goalLabel');
+        
+        const settingLabels = document.querySelectorAll('.setting-item label');
+        if (settingLabels.length >= 3) {
+            settingLabels[0].innerHTML = this.t('thresholdLabel');
+            settingLabels[1].innerHTML = this.t('languageLabel');
+            settingLabels[2].innerHTML = this.t('backupLabel');
+        }
+        
+        const welcomeMessage = document.querySelector('.chat-message.bot .message-text');
         if (welcomeMessage) welcomeMessage.textContent = this.t('welcomeMessage');
+        
+        const suggestionChips = document.querySelectorAll('.suggestion-chip');
+        if (suggestionChips.length >= 4) {
+            suggestionChips[0].textContent = this.t('suggestion1');
+            suggestionChips[1].textContent = this.t('suggestion2');
+            suggestionChips[2].textContent = this.t('suggestion3');
+            suggestionChips[3].textContent = this.t('suggestion4');
+            suggestionChips[0].dataset.question = this.t('aiQuestionSave100');
+            suggestionChips[1].dataset.question = this.t('aiQuestionSimulateIncrease');
+            suggestionChips[2].dataset.question = this.t('aiQuestionGoal');
+            suggestionChips[3].dataset.question = this.t('aiQuestionTopCategory');
+        }
 
-        const balanceChartCard = safeGet('balanceChartCard');
+        const balanceChartCard = document.getElementById('balanceChartCard');
         if (balanceChartCard) {
             const h2 = balanceChartCard.querySelector('h2');
             if (h2) h2.textContent = this.t('chartTitleBars');
         }
         setText('balanceChartNote', this.t('balanceChartNote'));
 
-        const monthlyBalanceCard = safeGet('monthlyBalanceChartCard');
+        const monthlyBalanceCard = document.getElementById('monthlyBalanceChartCard');
         if (monthlyBalanceCard) {
             const h2 = monthlyBalanceCard.querySelector('h2');
             if (h2) h2.textContent = this.t('chartTitleTrend');
@@ -3863,129 +3877,169 @@ applyLanguage(lang) {
         setText('monthlyBalanceChartNote', this.t('monthlyBalanceNote'));
         setText('monthlyBalanceEmpty', this.t('monthlyBalanceEmpty'), true);
 
-        const categoryPrintPanel = safeGet('categoryPrintPanel');
+        const categoryPrintPanel = document.getElementById('categoryPrintPanel');
         if (categoryPrintPanel) {
             const labelEl = categoryPrintPanel.querySelector('.category-print-panel__eyebrow');
             if (labelEl) labelEl.textContent = this.t('categoryPrintSelectedLabel');
         }
-
-        const categoryPrintCloseBtn = safeGet('closeCategoryPrintBtn');
+        const categoryPrintCloseBtn = document.getElementById('closeCategoryPrintBtn');
         if (categoryPrintCloseBtn) categoryPrintCloseBtn.textContent = this.t('close');
-
-        const categoryPrintHint = safeGet('categoryPrintHint');
+        const categoryPrintHint = document.getElementById('categoryPrintHint');
         if (categoryPrintHint) {
             categoryPrintHint.textContent = (Array.isArray(this.selectedCategoryExpenses) && this.selectedCategoryExpenses.length > 0)
                 ? this.t('categoryPrintHintReady')
                 : this.t('categoryPrintHintEmpty');
         }
-
         const categoryPrintKpis = categoryPrintPanel ? categoryPrintPanel.querySelectorAll('.category-print-kpi span') : [];
         if (categoryPrintKpis.length >= 2) {
             categoryPrintKpis[0].textContent = this.t('categoryPrintTotalLabel');
             categoryPrintKpis[1].textContent = this.t('categoryPrintCountLabel');
         }
-
-        const printCategoryPdfBtn = safeGet('printCategoryPdfBtn');
+        const printCategoryPdfBtn = document.getElementById('printCategoryPdfBtn');
         if (printCategoryPdfBtn) printCategoryPdfBtn.textContent = this.t('categoryPrintButton');
-
-        const chartLegendToggleBtn = safeGet('chartLegendToggleBtn');
+        const chartLegendToggleBtn = document.getElementById('chartLegendToggleBtn');
         if (chartLegendToggleBtn) {
             chartLegendToggleBtn.textContent = this.chartLegendCollapsed ? this.t('showCategories') : this.t('hideCategories');
         }
-
+        
         setText('guideMessage', this.t('startGuide'));
-
-        const micFixedSpan = safeGet('micFixedText');
+        
+        const micFixedSpan = document.getElementById('micFixedText');
         if (micFixedSpan) micFixedSpan.textContent = this.t('fixedVoiceButton');
 
-        const voiceBtnSpan = safeQuery('#voiceBtnText');
+        const voiceBtnSpan = document.getElementById('voiceBtnText');
         if (voiceBtnSpan) voiceBtnSpan.textContent = this.t('variableVoiceButton');
-
-        const homeVoiceBtnSpan = safeQuery('#homeVoiceBtn > span');
+        const homeVoiceBtnSpan = document.querySelector('#homeVoiceBtn > span');
         if (homeVoiceBtnSpan) homeVoiceBtnSpan.textContent = this.t('homeVoiceVariableButton');
-
-        const homeManualBtnLabel = safeQuery('#homeManualBtn > span');
+        const homeManualBtnLabel = document.querySelector('#homeManualBtn > span');
         if (homeManualBtnLabel) homeManualBtnLabel.textContent = this.t('homeManualOpen');
+        this.updateWiseDecisionCard();
 
-        if (typeof this.updateWiseDecisionCard === 'function') {
-            try { this.updateWiseDecisionCard(); } catch (_e) {}
-        }
+        const totalIncomeLabel = document.getElementById('totalIncomeLabel');
+        if (totalIncomeLabel) totalIncomeLabel.textContent = this.t('totalIncome');
 
-        setText('totalIncomeLabel', this.t('totalIncome'));
-        setText('footerText', this.t('footerText'));
-        setText('footerFeatures', this.t('footerFeatures'));
-        setText('footerBrandSignature', this.t('footerBrandSignature'));
-        setText('footerPeriodLabel', this.t('footerPeriodLabel'));
-        setText('footerDaysLabel', this.t('footerDaysLabel'));
-        setText('footerBudgetLabel', this.t('footerBudgetLabel'));
-        setText('budgetLabel', this.t('budget'));
-        setText('remainingLabel', this.t('remaining'));
-        setText('daysLabel', this.t('days'));
-        setText('assistantNameText', this.t('assistantName'));
-        setText('incomeDateLabel', this.t('incomeDateLabel'));
+        const footerText = document.getElementById('footerText');
+        if (footerText) footerText.textContent = this.t('footerText');
 
-        const categorySelect = safeGet('expenseCategory');
-        if (categorySelect?.options?.length) {
-            const desiredLabels = [
-                this.t('categoryAlimentari'),
-                this.t('categoryTrasporti'),
-                this.t('categoryAltro'),
-                this.t('categorySvago'),
-                this.t('categorySalute'),
-                this.t('categoryAbbigliamento')
-            ];
-            for (let i = 0; i < desiredLabels.length; i += 1) {
-                const option = categorySelect.options[i];
-                if (!option) continue;
-                option.text = desiredLabels[i];
+        const footerFeatures = document.getElementById('footerFeatures');
+        if (footerFeatures) footerFeatures.textContent = this.t('footerFeatures');
+        const footerBrandSignature = document.getElementById('footerBrandSignature');
+        if (footerBrandSignature) footerBrandSignature.textContent = this.t('footerBrandSignature');
+
+        const footerPeriodLabel = document.getElementById('footerPeriodLabel');
+        if (footerPeriodLabel) footerPeriodLabel.textContent = this.t('footerPeriodLabel');
+        const footerDaysLabel = document.getElementById('footerDaysLabel');
+        if (footerDaysLabel) footerDaysLabel.textContent = this.t('footerDaysLabel');
+        const footerBudgetLabel = document.getElementById('footerBudgetLabel');
+        if (footerBudgetLabel) footerBudgetLabel.textContent = this.t('footerBudgetLabel');
+
+        const budgetLabel = document.getElementById('budgetLabel');
+        if (budgetLabel) budgetLabel.textContent = this.t('budget');
+        
+        const remainingLabel = document.getElementById('remainingLabel');
+        if (remainingLabel) remainingLabel.textContent = this.t('remaining');
+        
+        const daysLabel = document.getElementById('daysLabel');
+        if (daysLabel) daysLabel.textContent = this.t('days');
+        
+        const assistantNameText = document.getElementById('assistantNameText');
+        if (assistantNameText) assistantNameText.textContent = this.t('assistantName');
+        
+        const incomeDateLabel = document.getElementById('incomeDateLabel');
+        if (incomeDateLabel) incomeDateLabel.textContent = this.t('incomeDateLabel');
+        
+        const categorySelect = document.getElementById('expenseCategory');
+        if (categorySelect) {
+            const options = categorySelect.options;
+            options[0].text = this.t('categoryAlimentari');
+            options[1].text = this.t('categoryTrasporti');
+            options[2].text = this.t('categoryAltro');
+            // Solo premium ha più categorie
+            if (options.length > 3) {
+                options[3].text = this.t('categorySvago');
+                options[4].text = this.t('categorySalute');
+                options[5].text = this.t('categoryAbbigliamento');
             }
         }
+        
+        const dateHintFixed = document.getElementById('dateHintFixed');
+        if (dateHintFixed) dateHintFixed.textContent = this.t('dateHint');
 
-        setText('dateHintFixed', this.t('dateHint'));
-        setText('dateHintVariable', this.t('dateHint'));
-        setText('showAllExpensesLabel', this.t('showAllExpenses'));
-        setText('csvTitle', this.t('csvTitle'));
-        setText('csvSubtitle', this.t('csvSubtitle'));
-        setText('csvChooseFileLabel', this.t('csvChooseFile'));
+        const dateHintVariable = document.getElementById('dateHintVariable');
+        if (dateHintVariable) dateHintVariable.textContent = this.t('dateHint');
 
-        const csvFileName = safeGet('csvFileName');
+        const showAllLabel = document.getElementById('showAllExpensesLabel');
+        if (showAllLabel) showAllLabel.textContent = this.t('showAllExpenses');
+        
+        const csvTitle = document.getElementById('csvTitle');
+        if (csvTitle) csvTitle.textContent = this.t('csvTitle');
+
+        const csvSubtitle = document.getElementById('csvSubtitle');
+        if (csvSubtitle) csvSubtitle.textContent = this.t('csvSubtitle');
+
+        const csvChooseFileLabel = document.getElementById('csvChooseFileLabel');
+        if (csvChooseFileLabel) csvChooseFileLabel.textContent = this.t('csvChooseFile');
+
+        const csvFileName = document.getElementById('csvFileName');
         if (csvFileName && ['Nessun file selezionato','No file selected','Ningún archivo seleccionado','Aucun fichier sélectionné'].includes(String(csvFileName.textContent || '').trim())) {
             csvFileName.textContent = this.t('csvNoFile');
         }
 
-        const importCsvBtn = safeGet('importCsvBtn');
+        const importCsvBtn = document.getElementById('importCsvBtn');
         if (importCsvBtn) importCsvBtn.innerHTML = this.t('csvImportBtn');
 
-        setText('csvDateFormatLabel', this.t('csvDateFormat'));
-        setText('csvSeparatorLabel', this.t('csvSeparator'));
+        const csvDateFormatLabel = document.getElementById('csvDateFormatLabel');
+        if (csvDateFormatLabel) csvDateFormatLabel.textContent = this.t('csvDateFormat');
 
-        if (delimiterSelect?.options?.length >= 2) {
-            delimiterSelect.options[0].text = runtimeLang === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
-            delimiterSelect.options[1].text = runtimeLang === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
+        const csvSeparatorLabel = document.getElementById('csvSeparatorLabel');
+        if (csvSeparatorLabel) csvSeparatorLabel.textContent = this.t('csvSeparator');
+
+        const delimiterSelect = document.getElementById('csvDelimiter');
+        if (delimiterSelect) {
+            const options = delimiterSelect.options;
+            if (options.length >= 2) {
+                options[0].text = this.data.language === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
+                options[1].text = this.data.language === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
+            }
         }
 
-        if (separatorSelect?.options?.length >= 3) {
-            separatorSelect.options[0].text = this.t('csvComma');
-            separatorSelect.options[1].text = this.t('csvSemicolon');
-            separatorSelect.options[2].text = this.t('csvTab');
+        const separatorSelect = document.getElementById('csvSeparator');
+        if (separatorSelect) {
+            const options = separatorSelect.options;
+            if (options.length >= 3) {
+                options[0].text = this.t('csvComma');
+                options[1].text = this.t('csvSemicolon');
+                options[2].text = this.t('csvTab');
+            }
         }
 
-        setText('csvPreviewTitle', this.t('csvPreview'));
-        setText('aiWidgetTitle', this.t('aiSuggestionsTitle'));
-        setText('aiWidgetBadge', this.t('aiSmartBadge'));
-        setText('dismissAiSuggestion', this.t('close'));
-        setText('closeDetailBtn', this.t('close'));
-        setText('importReviewTitle', this.t('importReview'));
-        setText('csvMappingTitle', this.t('csvMappingTitle'));
-        setText('csvMappingInstructions', this.t('csvMappingInstructionsHtml'), true);
-        setText('csvMappingFieldsTitle', this.t('csvMappingFieldsTitle'));
+        const csvPreviewTitle = document.getElementById('csvPreviewTitle');
+        if (csvPreviewTitle) csvPreviewTitle.textContent = this.t('csvPreview');
 
-        const catSectionTitle = Array.from(safeQueryAll('h2')).find(h => h.textContent.includes('📂'));
+        const aiWidgetTitle = document.getElementById('aiWidgetTitle');
+        if (aiWidgetTitle) aiWidgetTitle.textContent = this.t('aiSuggestionsTitle');
+        const aiWidgetBadge = document.getElementById('aiWidgetBadge');
+        if (aiWidgetBadge) aiWidgetBadge.textContent = this.t('aiSmartBadge');
+        const dismissAiSuggestionBtn = document.getElementById('dismissAiSuggestion');
+        if (dismissAiSuggestionBtn) dismissAiSuggestionBtn.textContent = this.t('close');
+        const closeDetailBtn2 = document.getElementById('closeDetailBtn');
+        if (closeDetailBtn2) closeDetailBtn2.textContent = this.t('close');
+        const importReviewTitle = document.getElementById('importReviewTitle');
+        if (importReviewTitle) importReviewTitle.textContent = this.t('importReview');
+        const csvMappingTitle = document.getElementById('csvMappingTitle');
+        if (csvMappingTitle) csvMappingTitle.textContent = this.t('csvMappingTitle');
+        const csvMappingInstructions = document.getElementById('csvMappingInstructions');
+        if (csvMappingInstructions) csvMappingInstructions.innerHTML = this.t('csvMappingInstructionsHtml');
+        const csvMappingFieldsTitle = document.getElementById('csvMappingFieldsTitle');
+        if (csvMappingFieldsTitle) csvMappingFieldsTitle.textContent = this.t('csvMappingFieldsTitle');
+
+        const catSectionTitle = Array.from(document.querySelectorAll('h2')).find(h => h.textContent.includes('📂'));
         if (catSectionTitle) catSectionTitle.textContent = this.t('categoriesSectionTitle');
 
-        setText('manageCategoriesBtn', this.t('manageCustomCategories'));
+        const manageBtn = document.getElementById('manageCategoriesBtn');
+        if (manageBtn) manageBtn.textContent = this.t('manageCustomCategories');
 
-        const catOverlay = safeGet('categoryManagerOverlay');
+        const catOverlay = document.getElementById('categoryManagerOverlay');
         if (catOverlay) {
             const h3 = catOverlay.querySelector('h3');
             if (h3) h3.textContent = this.t('manageCategories');
@@ -3999,17 +4053,20 @@ applyLanguage(lang) {
             const newCatLabel = catOverlay.querySelector('label[for="newCategoryName"]');
             if (newCatLabel) newCatLabel.textContent = this.t('newCategoryLabel');
 
-            const newCatInput = safeGet('newCategoryName');
+            const newCatInput = document.getElementById('newCategoryName');
             if (newCatInput) newCatInput.placeholder = this.t('newCategoryPlaceholder');
-
-            const newSubCatInput = safeGet('newSubcategoryName');
+            const newSubCatInput = document.getElementById('newSubcategoryName');
             if (newSubCatInput) newSubCatInput.placeholder = this.t('expenseSubCategory');
 
-            setText('saveCategoryBtn', this.t('add'));
-            setText('closeCategoryManager', this.t('close'));
+            const saveCatBtn = document.getElementById('saveCategoryBtn');
+            if (saveCatBtn) saveCatBtn.textContent = this.t('add');
+
+            const closeCatBtn = document.getElementById('closeCategoryManager');
+            if (closeCatBtn) closeCatBtn.textContent = this.t('close');
         }
 
-        const tabButtons = safeQueryAll('.tab-btn');
+        // Traduci i bottoni dei tab
+        const tabButtons = document.querySelectorAll('.tab-btn');
         if (tabButtons.length >= 7) {
             tabButtons[0].textContent = this.t('tabHome');
             tabButtons[1].textContent = this.t('tabIncomes');
@@ -4020,155 +4077,186 @@ applyLanguage(lang) {
             tabButtons[6].textContent = this.t('tabTools');
         }
 
-        setText('skipRowsLabel', this.t('skipRowsLabel'));
-        setText('headerRowManualLabel', this.t('headerRowManualLabel'));
-        setText('skipHelp', this.t('skipHelp'));
+                        // Traduzioni per skip rows
+        const skipRowsLabel = document.getElementById('skipRowsLabel');
+        if (skipRowsLabel) skipRowsLabel.textContent = this.t('skipRowsLabel');
+        const headerRowManualLabel = document.getElementById('headerRowManualLabel');
+        if (headerRowManualLabel) headerRowManualLabel.textContent = this.t('headerRowManualLabel');
+        const skipHelp = document.getElementById('skipHelp');
+        if (skipHelp) skipHelp.textContent = this.t('skipHelp');
 
-        const savingsWidgetTitle = safeGet('savingsWidgetTitle');
+        // ===== NUOVE TRADUZIONI AGGIUNTIVE =====
+        
+        // 1. WIDGET RISPARMIO
+        const savingsWidgetTitle = document.getElementById('savingsWidgetTitle');
         if (savingsWidgetTitle) savingsWidgetTitle.textContent = this.t('savingsWidgetTitle');
-
-        const targetDate = safeGet('targetDate');
-        if (targetDate && ['Mai', 'Never', 'Nunca', 'Jamais'].includes(String(targetDate.textContent || '').trim())) {
+        
+        const targetDate = document.getElementById('targetDate');
+        if (targetDate && (targetDate.textContent === 'Mai' || targetDate.textContent === 'Never' || targetDate.textContent === 'Nunca' || targetDate.textContent === 'Jamais')) {
             targetDate.textContent = this.t('never');
         }
-
-        const percentLabels = safeQueryAll('.slider-labels span');
+        
+        const percentLabels = document.querySelectorAll('.slider-labels span');
         if (percentLabels.length >= 3) {
             percentLabels[0].textContent = this.t('percent0');
             percentLabels[1].textContent = this.t('percent15');
             percentLabels[2].textContent = this.t('percent30');
         }
+        
+        const savingsPotInputLabel = document.getElementById('savingsPotInputLabel');
+        if (savingsPotInputLabel) savingsPotInputLabel.textContent = this.t('savingsPotInputLabel');
+        
+        const currentPlanTitle = document.getElementById('currentPlanTitle');
+        if (currentPlanTitle) currentPlanTitle.innerHTML = this.t('currentPlan');
+        
+        const currentPlanMessage = document.getElementById('currentPlanMessage');
+        if (currentPlanMessage) currentPlanMessage.innerHTML = this.t('currentPlanMessage');
 
-        setText('savingsPotInputLabel', this.t('savingsPotInputLabel'));
-        setText('currentPlanTitle', this.t('currentPlan'), true);
-        setText('currentPlanMessage', this.t('currentPlanMessage'), true);
-
-        const wiseScoreHomeTitle = safeGet('wiseScoreHomeTitle');
+        const wiseScoreHomeTitle = document.getElementById('wiseScoreHomeTitle');
         if (wiseScoreHomeTitle) wiseScoreHomeTitle.textContent = 'WiseScore™';
-
-        const pillarNames = safeQueryAll('.wise-pillar-name');
+        const pillarNames = document.querySelectorAll('.wise-pillar-name');
         if (pillarNames.length >= 3) {
             pillarNames[0].textContent = this.uiText('wisePillarStability');
             pillarNames[1].textContent = this.uiText('wisePillarDiscipline');
             pillarNames[2].textContent = this.uiText('wisePillarResilience');
         }
-
-        const reportToolsCard = safeGet('reportToolsCard');
+        const reportToolsCard = document.getElementById('reportToolsCard');
         if (reportToolsCard) {
             const h2 = reportToolsCard.querySelector('h2');
             const note = reportToolsCard.querySelector('.chart-note');
             if (h2) h2.textContent = this.uiText('reportToolsTitle');
             if (note) note.textContent = this.uiText('reportToolsNote');
         }
-
-        setText('openReportBtn', this.uiText('reportOpen'));
-        setText('refreshReportBtn', this.uiText('reportRefresh'));
-
-        const reportGeneratedAt = safeGet('reportGeneratedAt');
-        if (reportGeneratedAt && !reportGeneratedAt.dataset.dynamicReportTs) {
-            reportGeneratedAt.textContent = this.uiText('reportCurrentPeriodSummary');
-        }
-
-        const reportModalHeader = safeQuery('#reportModal .report-modal-header h3');
+        const openReportBtn = document.getElementById('openReportBtn');
+        if (openReportBtn) openReportBtn.textContent = this.uiText('reportOpen');
+        const refreshReportBtn = document.getElementById('refreshReportBtn');
+        if (refreshReportBtn) refreshReportBtn.textContent = this.uiText('reportRefresh');
+        const reportGeneratedAt = document.getElementById('reportGeneratedAt');
+        if (reportGeneratedAt && !reportGeneratedAt.dataset.dynamicReportTs) reportGeneratedAt.textContent = this.uiText('reportCurrentPeriodSummary');
+        const reportModalHeader = document.querySelector('#reportModal .report-modal-header h3');
         if (reportModalHeader) reportModalHeader.textContent = this.uiText('reportToolsTitle');
-
-        setText('refreshReportModalBtn', this.uiText('reportRefresh'));
-        setText('exportReportPdfBtn', this.uiText('exportPdf'));
-        setText('closeReportBtn', this.uiText('close'));
-        setText('savingsTitle', this.t('savings'));
-
+        const refreshReportModalBtn = document.getElementById('refreshReportModalBtn');
+        if (refreshReportModalBtn) refreshReportModalBtn.textContent = this.uiText('reportRefresh');
+        const exportReportPdfBtn = document.getElementById('exportReportPdfBtn');
+        if (exportReportPdfBtn) exportReportPdfBtn.textContent = this.uiText('exportPdf');
+        const closeReportBtn = document.getElementById('closeReportBtn');
+        if (closeReportBtn) closeReportBtn.textContent = this.uiText('close');
+        const savingsTitle = document.getElementById('savingsTitle');
+        if (savingsTitle) savingsTitle.textContent = this.t('savings');
         if (savingsWidgetTitle) savingsWidgetTitle.textContent = this.uiText('savingsWidgetTitleFixed');
-
-        setSelectorText('label[for="dateFormatDays"] span', this.t('fixedDateFormatDays'));
-        setSelectorText('label[for="dateFormatMonths"] span', this.t('fixedDateFormatMonths'));
-        setText('fixedDateFormatHelp', this.t('fixedDateFormatHelp'));
-        setText('backupLabel', this.t('backupLabel'));
-
-        const backupBtn = safeGet('backupBtn');
+        
+                // 2. IMPOSTAZIONI - FORMATO DATE FISSE
+        const fixedDaysLabel = document.querySelector('label[for="dateFormatDays"] span');
+        if (fixedDaysLabel) fixedDaysLabel.textContent = this.t('fixedDateFormatDays');
+        
+        const fixedMonthsLabel = document.querySelector('label[for="dateFormatMonths"] span');
+        if (fixedMonthsLabel) fixedMonthsLabel.textContent = this.t('fixedDateFormatMonths');
+        
+        const helpText = document.getElementById('fixedDateFormatHelp');
+        if (helpText) helpText.textContent = this.t('fixedDateFormatHelp');
+        
+        // 3. PULSANTI BACKUP
+        const backupLabel = document.getElementById('backupLabel');
+        if (backupLabel) backupLabel.textContent = this.t('backupLabel');
+        
+        const backupBtn = document.getElementById('backupBtn');
         if (backupBtn) backupBtn.innerHTML = this.t('backupButton');
-
-        const restoreBtn = safeGet('restoreBtn');
+        
+        const restoreBtn = document.getElementById('restoreBtn');
         if (restoreBtn) restoreBtn.innerHTML = this.t('restoreButton');
-
-        const searchInput = safeGet('searchExpenses');
+        
+        // 4. RICERCA
+        const searchInput = document.getElementById('searchExpenses');
         if (searchInput) searchInput.placeholder = this.t('searchPlaceholder');
-
-        const allCategoriesOption = safeQuery('#searchCategory option[value="all"]');
+        
+        const allCategoriesOption = document.querySelector('#searchCategory option[value="all"]');
         if (allCategoriesOption) allCategoriesOption.textContent = this.t('allCategories');
-
-        const resetSearchBtn = safeGet('resetSearchBtn');
+        
+        const resetSearchBtn = document.getElementById('resetSearchBtn');
         if (resetSearchBtn) resetSearchBtn.innerHTML = this.t('clearFilters');
-
-        setText('savingsPotLabel', this.t('savingsPotLabel'));
-        setText('spendingPaceLabel', this.t('spendingPace'));
-
-        if (typeof this.updateWiseForecastHome === 'function') {
-            try { this.updateWiseForecastHome(); } catch (_e) {}
-        }
-
-        setText('excelSheetLabel', this.t('excelSheet'));
-        setText('excelHeaderLabel', this.t('excelHeaderRow'));
-
-        const excelSheetSelect = safeGet('excelSheet');
+        
+        // 5. RIEPILOGO IN ALTO
+        const savingsPotLabel = document.getElementById('savingsPotLabel');
+        if (savingsPotLabel) savingsPotLabel.textContent = this.t('savingsPotLabel');
+        const paceLabel = document.getElementById('spendingPaceLabel');
+        if (paceLabel) paceLabel.textContent = this.t('spendingPace');
+        if (document.getElementById('remainingLabel')) document.getElementById('remainingLabel').textContent = this.t('remaining');
+        if (document.getElementById('daysLabel')) document.getElementById('daysLabel').textContent = this.t('days');
+        if (document.getElementById('budgetLabel')) document.getElementById('budgetLabel').textContent = this.t('budget');
+        this.updateWiseForecastHome();
+        
+        // 6. IMPORT AVANZATO - EXCEL
+        const excelSheetLabel = document.getElementById('excelSheetLabel');
+        if (excelSheetLabel) excelSheetLabel.textContent = this.t('excelSheet');
+        
+        const excelHeaderLabel = document.getElementById('excelHeaderLabel');
+        if (excelHeaderLabel) excelHeaderLabel.textContent = this.t('excelHeaderRow');
+        
+        const excelSheetSelect = document.getElementById('excelSheet');
         if (excelSheetSelect) {
             const placeholderOption = excelSheetSelect.querySelector('option[value=""]');
             if (placeholderOption) placeholderOption.textContent = this.t('excelSheetPlaceholder');
         }
+        
+        const excelHeaderSelect = document.getElementById('excelHeaderRow');
+        if (excelHeaderSelect) {
+            const options = excelHeaderSelect.options;
+            if (options.length >= 4) {
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === "-1") {
+                        options[i].text = this.t('rowNone');
+                    }
+                }
+            }
+        }
+        
+        const excelHelp = document.getElementById('excelHelp');
+        if (excelHelp) excelHelp.textContent = this.t('excelHelp');
 
-        setOptionTextByValue('excelHeaderRow', '-1', this.t('rowNone'));
-        setText('excelHelp', this.t('excelHelp'));
+        this.updateIncomeList();
+        this.updateFixedExpensesList();
+        this.updateVariableExpensesList();
+        this.updateFixedStatusHome();
+        this.updateChart();
 
-        if (typeof this.updateIncomeList === 'function') {
-            try { this.updateIncomeList(); } catch (_e) {}
-        }
-        if (typeof this.updateFixedExpensesList === 'function') {
-            try { this.updateFixedExpensesList(); } catch (_e) {}
-        }
-        if (typeof this.updateVariableExpensesList === 'function') {
-            try { this.updateVariableExpensesList(); } catch (_e) {}
-        }
-        if (typeof this.updateFixedStatusHome === 'function') {
-            try { this.updateFixedStatusHome(); } catch (_e) {}
-        }
-        if (typeof this.updateChart === 'function') {
-            try { this.updateChart(); } catch (_e) {}
-        }
-        if (typeof this.updateAllCategorySelects === 'function') {
-            try { this.updateAllCategorySelects(); } catch (_e) {}
-        }
+        this.updateAllCategorySelects();
+        const catOverlayOpen = document.getElementById('categoryManagerOverlay');
+        if (catOverlayOpen && catOverlayOpen.style.display === 'flex') this.refreshCategoryList();
+// Traduci il pulsante "Forse dopo" nel modal Premium
+const closePremiumBtn = document.getElementById('closePremiumBtn');
+if (closePremiumBtn) {
+    closePremiumBtn.textContent = this.t('maybeLater');
+}
+if (typeof this.normalizePremiumModalUI === 'function') {
+    this.normalizePremiumModalUI();
+}
 
-        const catOverlayOpen = safeGet('categoryManagerOverlay');
-        if (catOverlayOpen && catOverlayOpen.style.display === 'flex' && typeof this.refreshCategoryList === 'function') {
-            try { this.refreshCategoryList(); } catch (_e) {}
-        }
+// Traduci lo span del pulsante Aggiungi categoria
+const addCategoryBtnText = document.getElementById('addCategoryBtnText');
+if (addCategoryBtnText) {
+    addCategoryBtnText.textContent = this.t('add');
+}
 
-        setText('closePremiumBtn', this.t('maybeLater'));
-
-        if (typeof this.normalizePremiumModalUI === 'function') {
-            try { this.normalizePremiumModalUI(); } catch (_e) {}
+// Traduci le opzioni del select delle righe intestazione Excel
+const excelHeaderSelectEl = document.getElementById('excelHeaderRow');  // CAMBIATO IL NOME
+if (excelHeaderSelectEl) {
+    const options = excelHeaderSelectEl.options;
+    if (options.length >= 4) {
+        // Traduci "None (auto)"
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].value === "-1") {
+                options[i].text = this.t('rowNone');
+            }
         }
-
-        setText('addCategoryBtnText', this.t('add'));
-        setOptionTextByValue('excelHeaderRow', '-1', this.t('rowNone'));
-
-                if (typeof this.updatePeriodInfo === 'function') {
-            try { this.updatePeriodInfo(); } catch (_e) {}
-        }
-        if (typeof this.updateHomeHeroMetrics === 'function') {
-            try { this.updateHomeHeroMetrics(); } catch (_e) {}
-        }
-        if (typeof this.updateWiseForecastHome === 'function') {
-            try { this.updateWiseForecastHome(); } catch (_e) {}
-        }
-        if (typeof this.applyPrivacyState === 'function') {
-            try { this.applyPrivacyState(); } catch (_e) {}
-        }
-
-        console.log('✅ applyLanguage completata senza errori');
-    } catch (error) {
-        console.error('❌ applyLanguage crash prevenuto:', error);
     }
 }
+
+
+        this.updatePeriodInfo();
+        this.updateHomeHeroMetrics();
+        this.updateWiseForecastHome();
+        this.applyPrivacyState();
+    }
                 
 
 
@@ -11958,7 +12046,9 @@ ${this.t('duplicatesSkipped', { dup: _excelSkippedDuplicates })}`
         const expenseAmountField = document.getElementById('expenseAmount');
         if (expenseNameField) expenseNameField.value = description;
         if (expenseAmountField) expenseAmountField.value = amount;
-               const expenseSubCategory = document.getElementById('expenseSubCategory');
+        const expenseCategory = document.getElementById('expenseCategory');
+        if (expenseCategory && category) expenseCategory.value = category;
+        const expenseSubCategory = document.getElementById('expenseSubCategory');
         if (expenseSubCategory) {
             this.updateSubcategorySelect(category, suggestion?.subCategory || '');
             expenseSubCategory.value = suggestion?.subCategory || '';
@@ -13020,63 +13110,28 @@ function applyFinalI18nOverrides(app) {
     });
 })();
 
-// ===============================
-// 🚀 KEDRIX BOOTSTRAP FIX (ENTRY FIRST)
-// ===============================
-(function bootstrapKedrixApp() {
+function initApp() {
     try {
-        if (window.appInitialized) {
-            console.warn('⚠️ App già inizializzata');
-            return;
-        }
-
-        if (!window.LicenseSystem || typeof window.LicenseSystem.autoLogin !== 'function') {
-            console.error('❌ LicenseSystem non disponibile');
-            window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
-            return;
-        }
-
-        // 🔥 STEP 1 — ENTRY BRIDGE PRIMA DI TUTTO
-        const entry = window.LicenseSystem.autoLogin();
-
-        if (!entry || !entry.success) {
-            console.warn('❌ Nessuna licenza → redirect landing');
-            window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
-            return;
-        }
-
-        console.log('✅ KEDRIX ENTRY BRIDGE OK', entry.data);
-
-        // 🔥 STEP 2 — SOLO DOPO PARTE L'APP
-        const startApp = () => {
-            try {
-                window.KedrixApp = new Kedrix();
-                window.app = window.KedrixApp;
-                window.BudgetWiseApp = window.KedrixApp;
-                window.appInitialized = true;
-
-                if (typeof applyFinalI18nOverrides === 'function') {
-                    applyFinalI18nOverrides(window.app);
-                }
-
-                console.log('✅ Kedrix avviata correttamente');
-            } catch (error) {
-                console.error('❌ Errore inizializzazione:', error);
-            }
-        };
-
-        // 🔥 STEP 3 — DOM READY DOPO LICENSE
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', startApp);
-        } else {
-            startApp();
-        }
-
+        window.KedrixApp = new Kedrix();
+        window.appInitialized = true;
+        // Rende disponibile anche 'app' per comodità
+        window.app = window.KedrixApp;
+        window.BudgetWiseApp = window.KedrixApp;
+        applyFinalI18nOverrides(window.app);
     } catch (error) {
-        console.error('❌ Bootstrap Kedrix fallito:', error);
-        window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
+        console.error('❌ Errore inizializzazione:', error);
     }
-})();
+}
+
+// Assicuriamoci che l'app venga inizializzata una sola volta
+if (!window.appInitialized) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        // Piccolo ritardo per garantire che tutto sia caricato
+        setTimeout(initApp, 100);
+    }
+}
 
 // ============================================
 // GESTIONE IMPORT CSV/EXCEL (UNA SOLA VOLTA)
@@ -14097,7 +14152,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   const KEDRIX_TRACKING_ENDPOINT = (window.KedrixRuntimeConfig && typeof window.KedrixRuntimeConfig.getEndpoint === 'function')
     ? window.KedrixRuntimeConfig.getEndpoint('tracking')
-    : 'https://script.google.com/macros/s/AKfycbySLXJmpd8HtHouhdbj8Sy_JQWMSLRWvwhc7uqspH-opD_r16EAiYVAcLpI17tTfjod/exec';
+    : 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec';
 
   const normalizeEndpoint = (value) => {
     const raw = String(value || '').trim();
