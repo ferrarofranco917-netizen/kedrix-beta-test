@@ -13020,28 +13020,63 @@ function applyFinalI18nOverrides(app) {
     });
 })();
 
-function initApp() {
+// ===============================
+// 🚀 KEDRIX BOOTSTRAP FIX (ENTRY FIRST)
+// ===============================
+(function bootstrapKedrixApp() {
     try {
-        window.KedrixApp = new Kedrix();
-        window.appInitialized = true;
-        // Rende disponibile anche 'app' per comodità
-        window.app = window.KedrixApp;
-        window.BudgetWiseApp = window.KedrixApp;
-        applyFinalI18nOverrides(window.app);
-    } catch (error) {
-        console.error('❌ Errore inizializzazione:', error);
-    }
-}
+        if (window.appInitialized) {
+            console.warn('⚠️ App già inizializzata');
+            return;
+        }
 
-// Assicuriamoci che l'app venga inizializzata una sola volta
-if (!window.appInitialized) {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initApp);
-    } else {
-        // Piccolo ritardo per garantire che tutto sia caricato
-        setTimeout(initApp, 100);
+        if (!window.LicenseSystem || typeof window.LicenseSystem.autoLogin !== 'function') {
+            console.error('❌ LicenseSystem non disponibile');
+            window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
+            return;
+        }
+
+        // 🔥 STEP 1 — ENTRY BRIDGE PRIMA DI TUTTO
+        const entry = window.LicenseSystem.autoLogin();
+
+        if (!entry || !entry.success) {
+            console.warn('❌ Nessuna licenza → redirect landing');
+            window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
+            return;
+        }
+
+        console.log('✅ KEDRIX ENTRY BRIDGE OK', entry.data);
+
+        // 🔥 STEP 2 — SOLO DOPO PARTE L'APP
+        const startApp = () => {
+            try {
+                window.KedrixApp = new Kedrix();
+                window.app = window.KedrixApp;
+                window.BudgetWiseApp = window.KedrixApp;
+                window.appInitialized = true;
+
+                if (typeof applyFinalI18nOverrides === 'function') {
+                    applyFinalI18nOverrides(window.app);
+                }
+
+                console.log('✅ Kedrix avviata correttamente');
+            } catch (error) {
+                console.error('❌ Errore inizializzazione:', error);
+            }
+        };
+
+        // 🔥 STEP 3 — DOM READY DOPO LICENSE
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startApp);
+        } else {
+            startApp();
+        }
+
+    } catch (error) {
+        console.error('❌ Bootstrap Kedrix fallito:', error);
+        window.location.href = 'https://kedrix-landing-v2.kedrix-corp.workers.dev';
     }
-}
+})();
 
 // ============================================
 // GESTIONE IMPORT CSV/EXCEL (UNA SOLA VOLTA)
