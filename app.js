@@ -4151,18 +4151,24 @@ applyLanguage(lang) {
         setText('addCategoryBtnText', this.t('add'));
         setOptionTextByValue('excelHeaderRow', '-1', this.t('rowNone'));
 
+                if (typeof this.updatePeriodInfo === 'function') {
+            try { this.updatePeriodInfo(); } catch (_e) {}
+        }
+        if (typeof this.updateHomeHeroMetrics === 'function') {
+            try { this.updateHomeHeroMetrics(); } catch (_e) {}
+        }
+        if (typeof this.updateWiseForecastHome === 'function') {
+            try { this.updateWiseForecastHome(); } catch (_e) {}
+        }
+        if (typeof this.applyPrivacyState === 'function') {
+            try { this.applyPrivacyState(); } catch (_e) {}
+        }
+
         console.log('✅ applyLanguage completata senza errori');
     } catch (error) {
         console.error('❌ applyLanguage crash prevenuto:', error);
     }
 }
-
-
-        this.updatePeriodInfo();
-        this.updateHomeHeroMetrics();
-        this.updateWiseForecastHome();
-        this.applyPrivacyState();
-    }
                 
 
 
