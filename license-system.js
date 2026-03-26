@@ -56,6 +56,7 @@ class KedrixLicense {
             }
         };
 
+        this.seedStateFromUrl();
         this.bootstrapPromise = this.bootstrap();
         this.startHeartbeat();
     }
@@ -68,6 +69,67 @@ class KedrixLicense {
         const meta = document.querySelector('meta[name="kedrix-beta-registry-endpoint"]');
         if (meta && meta.content) return meta.content.trim();
         return '';
+    }
+
+    seedStateFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            const params = url.searchParams;
+
+            const email = String(
+                params.get('email') ||
+                params.get('license_email') ||
+                params.get('user_email') ||
+                ''
+            ).trim().toLowerCase();
+
+            const testerId = String(
+                params.get('tester_id') ||
+                params.get('testerId') ||
+                params.get('license_key') ||
+                params.get('licenseKey') ||
+                ''
+            ).trim();
+
+            const expiresAt = String(
+                params.get('expiry') ||
+                params.get('expires_at') ||
+                ''
+            ).trim();
+
+            const status = String(params.get('status') || '').trim().toLowerCase();
+            const hasSeed = !!(email || testerId || expiresAt || status);
+            if (!hasSeed) return;
+
+            this.updateState({
+                email: email || this.state.email,
+                testerId: testerId || this.state.testerId,
+                expiresAt: expiresAt || this.state.expiresAt,
+                status: status || this.state.status || 'pending',
+                type: this.state.type || 'beta',
+                checkedAt: new Date().toISOString(),
+                message: status ? this.messageForStatus(status) : (this.state.message || 'Verifica accesso beta in corso…')
+            });
+
+            if (email) localStorage.setItem('license_email', email);
+            if (testerId) {
+                localStorage.setItem('tester_id', testerId);
+                localStorage.setItem('kedrix_tester_id', testerId);
+            }
+            if (expiresAt) {
+                localStorage.setItem('license_expires_at', expiresAt);
+                localStorage.setItem('kedrix_license_expires_at', expiresAt);
+                localStorage.setItem('kedrix_expiry', expiresAt);
+            }
+            if (status) {
+                localStorage.setItem('kedrix_license_status', status);
+            }
+
+            const cleanUrl = `${url.pathname}${url.hash || ''}`;
+            window.history.replaceState({}, document.title, cleanUrl);
+        } catch (_error) {
+            // no-op
+        }
     }
 
     async bootstrap() {

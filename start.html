@@ -136,11 +136,11 @@
 
     <button id="btn">Accedi alla beta</button>
     <div id="errorMessage" class="error-message"></div>
-    <div class="footer">Accesso beta con attivazione automatica</div>
+    <div class="footer">Accesso beta con attivazione automatica · validità 14 giorni</div>
   </div>
 
   <script>
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbySLXJmpd8HtHouhdbj8Sy_JQWMSLRWvwhc7uqspH-opD_r16EAiYVAcLpI17tTfjod/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7ZT_5_tKxe6mA8B4kOJVbVbQcD89YsKoksICr7nrp3dQBfATT27WqU8FbFJJCX_Yb/exec';
     const APP_URL = 'https://kedrix-beta-test.pages.dev';
 
     const nameInput = document.getElementById('name');
@@ -199,7 +199,7 @@
           reason: 'beta_access_request',
           commitment: 'tester',
           auto_approve: true,
-          trial_days: 30
+          trial_days: 14
         };
 
         const response = await fetch(APPS_SCRIPT_URL, {

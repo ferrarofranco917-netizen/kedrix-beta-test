@@ -6,8 +6,8 @@
     serviceWorkerPath: './sw.js',
     scope: './',
     endpoints: {
-      registry: 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec',
-      tracking: 'https://script.google.com/macros/s/AKfycbxNM0y7ohRqW3r5c4rUP3chtvf-e-0fe3KHuZ04nLmmQzCxz4WaYy1OmATcHw08CWqG/exec'
+      registry: 'https://script.google.com/macros/s/AKfycbx7ZT_5_tKxe6mA8B4kOJVbVbQcD89YsKoksICr7nrp3dQBfATT27WqU8FbFJJCX_Yb/exec',
+      tracking: 'https://script.google.com/macros/s/AKfycbx7ZT_5_tKxe6mA8B4kOJVbVbQcD89YsKoksICr7nrp3dQBfATT27WqU8FbFJJCX_Yb/exec'
     }
   };
 
