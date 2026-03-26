@@ -3655,113 +3655,140 @@ detectCsvDelimiter(text, fallback = ',') {
 }
 
 applyLanguage(lang) {
-    console.log("🌐 Cambio lingua a:", lang);
+    try {
+        console.log("🌐 Cambio lingua a:", lang);
 
-    const runtimeLang = lang || this.getRuntimeLanguage() || 'it';
+        const runtimeLang = lang || this.getRuntimeLanguage?.() || this.data?.language || 'it';
 
-    const setText = (id, value, useHtml = false) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (useHtml) el.innerHTML = value;
-        else el.textContent = value;
-    };
+        const safeGet = (id) => {
+            try { return document.getElementById(id); } catch (_e) { return null; }
+        };
 
-    const setPlaceholder = (id, value) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.placeholder = value;
-    };
+        const safeQuery = (selector) => {
+            try { return document.querySelector(selector); } catch (_e) { return null; }
+        };
 
-    const settingLabels = document.querySelectorAll('.setting-item label') || [];
-    if (settingLabels && settingLabels.length >= 3) {
-        settingLabels[0].innerHTML = this.t('thresholdLabel');
-        settingLabels[1].innerHTML = this.t('languageLabel');
-        settingLabels[2].innerHTML = this.t('backupLabel');
-    }
+        const safeQueryAll = (selector) => {
+            try { return document.querySelectorAll(selector) || []; } catch (_e) { return []; }
+        };
 
-    const suggestionChips = document.querySelectorAll('.suggestion-chip') || [];
-    if (suggestionChips && suggestionChips.length >= 4) {
-        suggestionChips[0].textContent = this.t('suggestion1');
-        suggestionChips[1].textContent = this.t('suggestion2');
-        suggestionChips[2].textContent = this.t('suggestion3');
-        suggestionChips[3].textContent = this.t('suggestion4');
-    }
+        const setText = (id, value, useHtml = false) => {
+            const el = safeGet(id);
+            if (!el) return;
+            if (useHtml) el.innerHTML = value ?? '';
+            else el.textContent = value ?? '';
+        };
 
-    const delimiterSelect = document.getElementById('csvDelimiter');
-    if (delimiterSelect && delimiterSelect.options && delimiterSelect.options.length >= 2) {
-        delimiterSelect.options[0].text = this.data.language === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
-        delimiterSelect.options[1].text = this.data.language === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
-    }
+        const setPlaceholder = (id, value) => {
+            const el = safeGet(id);
+            if (!el) return;
+            el.placeholder = value ?? '';
+        };
 
-    const separatorSelect = document.getElementById('csvSeparator');
-    if (separatorSelect && separatorSelect.options && separatorSelect.options.length >= 3) {
-        separatorSelect.options[0].text = this.t('csvComma');
-        separatorSelect.options[1].text = this.t('csvSemicolon');
-        separatorSelect.options[2].text = this.t('csvTab');
-    }
+        const setSelectorText = (selector, value, useHtml = false) => {
+            const el = safeQuery(selector);
+            if (!el) return;
+            if (useHtml) el.innerHTML = value ?? '';
+            else el.textContent = value ?? '';
+        };
 
-    const expenseCategory = document.getElementById('expenseCategory');
-    if (expenseCategory && expenseCategory.options) {
-        for (let i = 0; i < expenseCategory.options.length; i++) {
-            const option = expenseCategory.options[i];
-            if (!option) continue;
-            const value = option.value;
-            if (!value) continue;
-            const translated = this.t(`category${value}`);
-            if (translated && translated !== `category${value}`) {
-                option.text = translated;
+        const setOptionTextByValue = (selectId, value, text) => {
+            const select = safeGet(selectId);
+            if (!select?.options?.length) return;
+            for (let i = 0; i < select.options.length; i++) {
+                if (String(select.options[i].value) === String(value)) {
+                    select.options[i].text = text;
+                }
+            }
+        };
+
+        const settingLabels = safeQueryAll('.setting-item label');
+        if (settingLabels.length >= 3) {
+            settingLabels[0].innerHTML = this.t('thresholdLabel');
+            settingLabels[1].innerHTML = this.t('languageLabel');
+            settingLabels[2].innerHTML = this.t('backupLabel');
+        }
+
+        const suggestionChips = safeQueryAll('.suggestion-chip');
+        if (suggestionChips.length >= 4) {
+            suggestionChips[0].textContent = this.t('suggestion1');
+            suggestionChips[1].textContent = this.t('suggestion2');
+            suggestionChips[2].textContent = this.t('suggestion3');
+            suggestionChips[3].textContent = this.t('suggestion4');
+        }
+
+        const delimiterSelect = safeGet('csvDelimiter');
+        if (delimiterSelect?.options?.length >= 2) {
+            delimiterSelect.options[0].text = runtimeLang === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
+            delimiterSelect.options[1].text = runtimeLang === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
+        }
+
+        const separatorSelect = safeGet('csvSeparator');
+        if (separatorSelect?.options?.length >= 3) {
+            separatorSelect.options[0].text = this.t('csvComma');
+            separatorSelect.options[1].text = this.t('csvSemicolon');
+            separatorSelect.options[2].text = this.t('csvTab');
+        }
+
+        const expenseCategory = safeGet('expenseCategory');
+        if (expenseCategory?.options?.length) {
+            for (let i = 0; i < expenseCategory.options.length; i++) {
+                const option = expenseCategory.options[i];
+                if (!option || !option.value) continue;
+                const translated = this.t(`category${option.value}`);
+                if (translated && translated !== `category${option.value}`) {
+                    option.text = translated;
+                }
             }
         }
-    } else {
-        console.warn('KEDRIX: expenseCategory non disponibile, skip');
-    }
 
-    const betaUi = {
-        it: {
-            settingsTitle: 'Build beta',
-            settingsText: 'Build controllata per tester. Accesso verificato tramite licenza beta e attivazione remota.',
-            feedback: 'Invia feedback',
-            footerBuild: 'Kedrix — BETA v1 · Candidata beta',
-            accessKicker: 'Kedrix — Accesso beta',
-            accessTitle: 'Verifica accesso beta',
-            accessText: 'Questa build è riservata ai tester autorizzati. Inserisci l’email approvata per continuare.',
-            accessLabel: 'Email autorizzata',
-            accessSubmit: 'Verifica accesso'
-        },
-        en: {
-            settingsTitle: 'Beta build',
-            settingsText: 'Controlled build for testers. Access is verified through beta licensing and remote activation.',
-            feedback: 'Send feedback',
-            footerBuild: 'Kedrix — BETA v1 · Beta candidate',
-            accessKicker: 'Kedrix — Beta Access',
-            accessTitle: 'Verify beta access',
-            accessText: 'This build is reserved for authorized testers. Enter the approved email to continue.',
-            accessLabel: 'Approved email',
-            accessSubmit: 'Verify access'
-        },
-        es: {
-            settingsTitle: 'Versión beta',
-            settingsText: 'Build controlada para testers. El acceso se verifica mediante licencia beta y activación remota.',
-            feedback: 'Enviar feedback',
-            footerBuild: 'Kedrix — BETA v1 · Candidata beta',
-            accessKicker: 'Kedrix — Acceso beta',
-            accessTitle: 'Verifica acceso beta',
-            accessText: 'Esta build está reservada para testers autorizados. Introduce el correo aprobado para continuar.',
-            accessLabel: 'Correo autorizado',
-            accessSubmit: 'Verificar acceso'
-        },
-        fr: {
-            settingsTitle: 'Version bêta',
-            settingsText: 'Build contrôlée pour les testeurs. L’accès est vérifié via licence bêta et activation à distance.',
-            feedback: 'Envoyer un feedback',
-            footerBuild: 'Kedrix — BETA v1 · Candidate bêta',
-            accessKicker: 'Kedrix — Accès bêta',
-            accessTitle: 'Vérifier l’accès bêta',
-            accessText: 'Cette build est réservée aux testeurs autorisés. Saisissez l’e-mail approuvé pour continuer.',
-            accessLabel: 'E-mail autorisé',
-            accessSubmit: 'Vérifier l’accès'
-        }
-    };
+        const betaUi = {
+            it: {
+                settingsTitle: 'Build beta',
+                settingsText: 'Build controllata per tester. Accesso verificato tramite licenza beta e attivazione remota.',
+                feedback: 'Invia feedback',
+                footerBuild: 'Kedrix — BETA v1 · Candidata beta',
+                accessKicker: 'Kedrix — Accesso beta',
+                accessTitle: 'Verifica accesso beta',
+                accessText: 'Questa build è riservata ai tester autorizzati. Inserisci l’email approvata per continuare.',
+                accessLabel: 'Email autorizzata',
+                accessSubmit: 'Verifica accesso'
+            },
+            en: {
+                settingsTitle: 'Beta build',
+                settingsText: 'Controlled build for testers. Access is verified through beta licensing and remote activation.',
+                feedback: 'Send feedback',
+                footerBuild: 'Kedrix — BETA v1 · Beta candidate',
+                accessKicker: 'Kedrix — Beta Access',
+                accessTitle: 'Verify beta access',
+                accessText: 'This build is reserved for authorized testers. Enter the approved email to continue.',
+                accessLabel: 'Approved email',
+                accessSubmit: 'Verify access'
+            },
+            es: {
+                settingsTitle: 'Versión beta',
+                settingsText: 'Build controlada para testers. El acceso se verifica mediante licencia beta y activación remota.',
+                feedback: 'Enviar feedback',
+                footerBuild: 'Kedrix — BETA v1 · Candidata beta',
+                accessKicker: 'Kedrix — Acceso beta',
+                accessTitle: 'Verifica acceso beta',
+                accessText: 'Esta build está reservada para testers autorizados. Introduce el correo aprobado para continuar.',
+                accessLabel: 'Correo autorizado',
+                accessSubmit: 'Verificar acceso'
+            },
+            fr: {
+                settingsTitle: 'Version bêta',
+                settingsText: 'Build contrôlée pour les testeurs. L’accès est vérifié via licence bêta et activation à distance.',
+                feedback: 'Envoyer un feedback',
+                footerBuild: 'Kedrix — BETA v1 · Candidate bêta',
+                accessKicker: 'Kedrix — Accès bêta',
+                accessTitle: 'Vérifier l’accès bêta',
+                accessText: 'Cette build est réservée aux testeurs autorisés. Saisissez l’e-mail approuvé pour continuer.',
+                accessLabel: 'E-mail autorisé',
+                accessSubmit: 'Vérifier l’accès'
+            }
+        };
+
         const betaCopy = betaUi[runtimeLang] || betaUi.it;
         setText('betaSettingsTitle', betaCopy.settingsTitle);
         setText('betaSettingsText', betaCopy.settingsText);
@@ -3776,20 +3803,23 @@ applyLanguage(lang) {
 
         setText('addIncomeBtn', this.t('addIncome'), true);
         setText('addFixedBtn', this.t('addFixed'), true);
-        const resetFixedBtn = document.getElementById('resetFixedBtn');
+
+        const resetFixedBtn = safeGet('resetFixedBtn');
         if (resetFixedBtn) resetFixedBtn.innerHTML = this.t('resetFixed');
+
         setText('addExpenseBtn', this.t('addExpense'), true);
         setText('resetDayBtn', this.t('resetDay'), true);
         setText('applySaveBtn', this.t('applySavings'));
         setText('backupBtn', this.t('backup'), true);
         setText('restoreBtn', this.t('restore'), true);
 
-        const loadDemoBtn = document.getElementById('loadDemoBtn');
+        const loadDemoBtn = safeGet('loadDemoBtn');
         if (loadDemoBtn) loadDemoBtn.textContent = this.t('onboardingDemo');
+
         setText('resetAllBtn', this.t('resetAll'), true);
         setText('exportCalendarBtn', this.t('export'));
         setText('sendChatBtn', this.t('send'));
-        
+
         setPlaceholder('incomeDesc', this.t('incomeDesc'));
         setPlaceholder('incomeAmount', this.t('incomeAmount'));
         setPlaceholder('fixedName', this.t('fixedName'));
@@ -3799,42 +3829,33 @@ applyLanguage(lang) {
         setPlaceholder('expenseAmount', this.t('expenseAmount'));
         setPlaceholder('expenseSubCategory', this.t('expenseSubCategory'));
         setPlaceholder('chatInput', this.t('chatPlaceholder'));
-        
-        const dateLabel = document.querySelector('.date-selector label');
-        if (dateLabel) dateLabel.textContent = this.t('dateLabel');
-        
-        const dayLabel = document.querySelector('.input-group.half label');
-        if (dayLabel) dayLabel.textContent = this.t('dayLabel');
-        
-        const endDateLabel = document.querySelectorAll('.input-group.half label')[1];
-        if (endDateLabel) endDateLabel.textContent = this.t('endDateLabel');
-        
+        setPlaceholder('searchExpenses', this.t('searchPlaceholder'));
+
+        setSelectorText('.date-selector label', this.t('dateLabel'));
+
+        const halfLabels = safeQueryAll('.input-group.half label');
+        if (halfLabels.length >= 1) halfLabels[0].textContent = this.t('dayLabel');
+        if (halfLabels.length >= 2) halfLabels[1].textContent = this.t('endDateLabel');
+
         setText('fixedVoiceStatus', this.t('micFixed'));
         setText('voiceStatus', this.t('micVariable'));
-        
-        const helpFixed = document.getElementById('fixedHelp');
-        if (helpFixed) helpFixed.textContent = this.t('helpFixed');
-        
+        setText('fixedHelp', this.t('helpFixed'));
         setText('chartNote', this.t('chartNote'));
-        
-        const percentLabel = document.querySelector('.input-group label[for="savePercent"]');
-        if (percentLabel) percentLabel.textContent = this.t('percentLabel');
-        
-        const goalLabel = document.querySelector('.input-group label[for="saveGoal"]');
-        if (goalLabel) goalLabel.textContent = this.t('goalLabel');
-        
-              
-        const welcomeMessage = document.querySelector('.chat-message.bot .message-text');
+
+        setSelectorText('.input-group label[for="savePercent"]', this.t('percentLabel'));
+        setSelectorText('.input-group label[for="saveGoal"]', this.t('goalLabel'));
+
+        const welcomeMessage = safeQuery('.chat-message.bot .message-text');
         if (welcomeMessage) welcomeMessage.textContent = this.t('welcomeMessage');
 
-        const balanceChartCard = document.getElementById('balanceChartCard');
+        const balanceChartCard = safeGet('balanceChartCard');
         if (balanceChartCard) {
             const h2 = balanceChartCard.querySelector('h2');
             if (h2) h2.textContent = this.t('chartTitleBars');
         }
         setText('balanceChartNote', this.t('balanceChartNote'));
 
-        const monthlyBalanceCard = document.getElementById('monthlyBalanceChartCard');
+        const monthlyBalanceCard = safeGet('monthlyBalanceChartCard');
         if (monthlyBalanceCard) {
             const h2 = monthlyBalanceCard.querySelector('h2');
             if (h2) h2.textContent = this.t('chartTitleTrend');
@@ -3842,79 +3863,69 @@ applyLanguage(lang) {
         setText('monthlyBalanceChartNote', this.t('monthlyBalanceNote'));
         setText('monthlyBalanceEmpty', this.t('monthlyBalanceEmpty'), true);
 
-        const categoryPrintPanel = document.getElementById('categoryPrintPanel');
+        const categoryPrintPanel = safeGet('categoryPrintPanel');
         if (categoryPrintPanel) {
             const labelEl = categoryPrintPanel.querySelector('.category-print-panel__eyebrow');
             if (labelEl) labelEl.textContent = this.t('categoryPrintSelectedLabel');
         }
-        const categoryPrintCloseBtn = document.getElementById('closeCategoryPrintBtn');
+
+        const categoryPrintCloseBtn = safeGet('closeCategoryPrintBtn');
         if (categoryPrintCloseBtn) categoryPrintCloseBtn.textContent = this.t('close');
-        const categoryPrintHint = document.getElementById('categoryPrintHint');
+
+        const categoryPrintHint = safeGet('categoryPrintHint');
         if (categoryPrintHint) {
             categoryPrintHint.textContent = (Array.isArray(this.selectedCategoryExpenses) && this.selectedCategoryExpenses.length > 0)
                 ? this.t('categoryPrintHintReady')
                 : this.t('categoryPrintHintEmpty');
         }
+
         const categoryPrintKpis = categoryPrintPanel ? categoryPrintPanel.querySelectorAll('.category-print-kpi span') : [];
-        if (categoryPrintKpis && categoryPrintKpis.length >= 2) {
+        if (categoryPrintKpis.length >= 2) {
             categoryPrintKpis[0].textContent = this.t('categoryPrintTotalLabel');
             categoryPrintKpis[1].textContent = this.t('categoryPrintCountLabel');
         }
-        const printCategoryPdfBtn = document.getElementById('printCategoryPdfBtn');
+
+        const printCategoryPdfBtn = safeGet('printCategoryPdfBtn');
         if (printCategoryPdfBtn) printCategoryPdfBtn.textContent = this.t('categoryPrintButton');
-        const chartLegendToggleBtn = document.getElementById('chartLegendToggleBtn');
+
+        const chartLegendToggleBtn = safeGet('chartLegendToggleBtn');
         if (chartLegendToggleBtn) {
             chartLegendToggleBtn.textContent = this.chartLegendCollapsed ? this.t('showCategories') : this.t('hideCategories');
         }
-        
+
         setText('guideMessage', this.t('startGuide'));
-        
-        const micFixedSpan = document.getElementById('micFixedText');
+
+        const micFixedSpan = safeGet('micFixedText');
         if (micFixedSpan) micFixedSpan.textContent = this.t('fixedVoiceButton');
 
-        const voiceBtnSpan = document.getElementById('voiceBtnText');
+        const voiceBtnSpan = safeQuery('#voiceBtnText');
         if (voiceBtnSpan) voiceBtnSpan.textContent = this.t('variableVoiceButton');
-        const homeVoiceBtnSpan = document.querySelector('#homeVoiceBtn > span');
+
+        const homeVoiceBtnSpan = safeQuery('#homeVoiceBtn > span');
         if (homeVoiceBtnSpan) homeVoiceBtnSpan.textContent = this.t('homeVoiceVariableButton');
-        const homeManualBtnLabel = document.querySelector('#homeManualBtn > span');
+
+        const homeManualBtnLabel = safeQuery('#homeManualBtn > span');
         if (homeManualBtnLabel) homeManualBtnLabel.textContent = this.t('homeManualOpen');
-        this.updateWiseDecisionCard();
 
-        const totalIncomeLabel = document.getElementById('totalIncomeLabel');
-        if (totalIncomeLabel) totalIncomeLabel.textContent = this.t('totalIncome');
+        if (typeof this.updateWiseDecisionCard === 'function') {
+            try { this.updateWiseDecisionCard(); } catch (_e) {}
+        }
 
-        const footerText = document.getElementById('footerText');
-        if (footerText) footerText.textContent = this.t('footerText');
+        setText('totalIncomeLabel', this.t('totalIncome'));
+        setText('footerText', this.t('footerText'));
+        setText('footerFeatures', this.t('footerFeatures'));
+        setText('footerBrandSignature', this.t('footerBrandSignature'));
+        setText('footerPeriodLabel', this.t('footerPeriodLabel'));
+        setText('footerDaysLabel', this.t('footerDaysLabel'));
+        setText('footerBudgetLabel', this.t('footerBudgetLabel'));
+        setText('budgetLabel', this.t('budget'));
+        setText('remainingLabel', this.t('remaining'));
+        setText('daysLabel', this.t('days'));
+        setText('assistantNameText', this.t('assistantName'));
+        setText('incomeDateLabel', this.t('incomeDateLabel'));
 
-        const footerFeatures = document.getElementById('footerFeatures');
-        if (footerFeatures) footerFeatures.textContent = this.t('footerFeatures');
-        const footerBrandSignature = document.getElementById('footerBrandSignature');
-        if (footerBrandSignature) footerBrandSignature.textContent = this.t('footerBrandSignature');
-
-        const footerPeriodLabel = document.getElementById('footerPeriodLabel');
-        if (footerPeriodLabel) footerPeriodLabel.textContent = this.t('footerPeriodLabel');
-        const footerDaysLabel = document.getElementById('footerDaysLabel');
-        if (footerDaysLabel) footerDaysLabel.textContent = this.t('footerDaysLabel');
-        const footerBudgetLabel = document.getElementById('footerBudgetLabel');
-        if (footerBudgetLabel) footerBudgetLabel.textContent = this.t('footerBudgetLabel');
-
-        const budgetLabel = document.getElementById('budgetLabel');
-        if (budgetLabel) budgetLabel.textContent = this.t('budget');
-        
-        const remainingLabel = document.getElementById('remainingLabel');
-        if (remainingLabel) remainingLabel.textContent = this.t('remaining');
-        
-        const daysLabel = document.getElementById('daysLabel');
-        if (daysLabel) daysLabel.textContent = this.t('days');
-        
-        const assistantNameText = document.getElementById('assistantNameText');
-        if (assistantNameText) assistantNameText.textContent = this.t('assistantName');
-        
-        const incomeDateLabel = document.getElementById('incomeDateLabel');
-        if (incomeDateLabel) incomeDateLabel.textContent = this.t('incomeDateLabel');
-        
-        const categorySelect = document.getElementById('expenseCategory');
-        if (categorySelect) {
+        const categorySelect = safeGet('expenseCategory');
+        if (categorySelect?.options?.length) {
             const desiredLabels = [
                 this.t('categoryAlimentari'),
                 this.t('categoryTrasporti'),
@@ -3929,85 +3940,52 @@ applyLanguage(lang) {
                 option.text = desiredLabels[i];
             }
         }
-        
-        const dateHintFixed = document.getElementById('dateHintFixed');
-        if (dateHintFixed) dateHintFixed.textContent = this.t('dateHint');
 
-        const dateHintVariable = document.getElementById('dateHintVariable');
-        if (dateHintVariable) dateHintVariable.textContent = this.t('dateHint');
+        setText('dateHintFixed', this.t('dateHint'));
+        setText('dateHintVariable', this.t('dateHint'));
+        setText('showAllExpensesLabel', this.t('showAllExpenses'));
+        setText('csvTitle', this.t('csvTitle'));
+        setText('csvSubtitle', this.t('csvSubtitle'));
+        setText('csvChooseFileLabel', this.t('csvChooseFile'));
 
-        const showAllLabel = document.getElementById('showAllExpensesLabel');
-        if (showAllLabel) showAllLabel.textContent = this.t('showAllExpenses');
-        
-        const csvTitle = document.getElementById('csvTitle');
-        if (csvTitle) csvTitle.textContent = this.t('csvTitle');
-
-        const csvSubtitle = document.getElementById('csvSubtitle');
-        if (csvSubtitle) csvSubtitle.textContent = this.t('csvSubtitle');
-
-        const csvChooseFileLabel = document.getElementById('csvChooseFileLabel');
-        if (csvChooseFileLabel) csvChooseFileLabel.textContent = this.t('csvChooseFile');
-
-        const csvFileName = document.getElementById('csvFileName');
+        const csvFileName = safeGet('csvFileName');
         if (csvFileName && ['Nessun file selezionato','No file selected','Ningún archivo seleccionado','Aucun fichier sélectionné'].includes(String(csvFileName.textContent || '').trim())) {
             csvFileName.textContent = this.t('csvNoFile');
         }
 
-        const importCsvBtn = document.getElementById('importCsvBtn');
+        const importCsvBtn = safeGet('importCsvBtn');
         if (importCsvBtn) importCsvBtn.innerHTML = this.t('csvImportBtn');
 
-        const csvDateFormatLabel = document.getElementById('csvDateFormatLabel');
-        if (csvDateFormatLabel) csvDateFormatLabel.textContent = this.t('csvDateFormat');
+        setText('csvDateFormatLabel', this.t('csvDateFormat'));
+        setText('csvSeparatorLabel', this.t('csvSeparator'));
 
-        const csvSeparatorLabel = document.getElementById('csvSeparatorLabel');
-        if (csvSeparatorLabel) csvSeparatorLabel.textContent = this.t('csvSeparator');
-
-        const delimiterSelect = document.getElementById('csvDelimiter');
-        if (delimiterSelect) {
-            const options = delimiterSelect.options;
-            if (options.length >= 2) {
-                options[0].text = this.data.language === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
-                options[1].text = this.data.language === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
-            }
+        if (delimiterSelect?.options?.length >= 2) {
+            delimiterSelect.options[0].text = runtimeLang === 'it' ? 'GG/MM/AAAA' : 'DD/MM/YYYY';
+            delimiterSelect.options[1].text = runtimeLang === 'it' ? 'MM/DD/AAAA' : 'MM/DD/YYYY';
         }
 
-        const separatorSelect = document.getElementById('csvSeparator');
-        if (separatorSelect) {
-            const options = separatorSelect.options;
-            if (options.length >= 3) {
-                options[0].text = this.t('csvComma');
-                options[1].text = this.t('csvSemicolon');
-                options[2].text = this.t('csvTab');
-            }
+        if (separatorSelect?.options?.length >= 3) {
+            separatorSelect.options[0].text = this.t('csvComma');
+            separatorSelect.options[1].text = this.t('csvSemicolon');
+            separatorSelect.options[2].text = this.t('csvTab');
         }
 
-        const csvPreviewTitle = document.getElementById('csvPreviewTitle');
-        if (csvPreviewTitle) csvPreviewTitle.textContent = this.t('csvPreview');
+        setText('csvPreviewTitle', this.t('csvPreview'));
+        setText('aiWidgetTitle', this.t('aiSuggestionsTitle'));
+        setText('aiWidgetBadge', this.t('aiSmartBadge'));
+        setText('dismissAiSuggestion', this.t('close'));
+        setText('closeDetailBtn', this.t('close'));
+        setText('importReviewTitle', this.t('importReview'));
+        setText('csvMappingTitle', this.t('csvMappingTitle'));
+        setText('csvMappingInstructions', this.t('csvMappingInstructionsHtml'), true);
+        setText('csvMappingFieldsTitle', this.t('csvMappingFieldsTitle'));
 
-        const aiWidgetTitle = document.getElementById('aiWidgetTitle');
-        if (aiWidgetTitle) aiWidgetTitle.textContent = this.t('aiSuggestionsTitle');
-        const aiWidgetBadge = document.getElementById('aiWidgetBadge');
-        if (aiWidgetBadge) aiWidgetBadge.textContent = this.t('aiSmartBadge');
-        const dismissAiSuggestionBtn = document.getElementById('dismissAiSuggestion');
-        if (dismissAiSuggestionBtn) dismissAiSuggestionBtn.textContent = this.t('close');
-        const closeDetailBtn2 = document.getElementById('closeDetailBtn');
-        if (closeDetailBtn2) closeDetailBtn2.textContent = this.t('close');
-        const importReviewTitle = document.getElementById('importReviewTitle');
-        if (importReviewTitle) importReviewTitle.textContent = this.t('importReview');
-        const csvMappingTitle = document.getElementById('csvMappingTitle');
-        if (csvMappingTitle) csvMappingTitle.textContent = this.t('csvMappingTitle');
-        const csvMappingInstructions = document.getElementById('csvMappingInstructions');
-        if (csvMappingInstructions) csvMappingInstructions.innerHTML = this.t('csvMappingInstructionsHtml');
-        const csvMappingFieldsTitle = document.getElementById('csvMappingFieldsTitle');
-        if (csvMappingFieldsTitle) csvMappingFieldsTitle.textContent = this.t('csvMappingFieldsTitle');
-
-        const catSectionTitle = Array.from(document.querySelectorAll('h2')).find(h => h.textContent.includes('📂'));
+        const catSectionTitle = Array.from(safeQueryAll('h2')).find(h => h.textContent.includes('📂'));
         if (catSectionTitle) catSectionTitle.textContent = this.t('categoriesSectionTitle');
 
-        const manageBtn = document.getElementById('manageCategoriesBtn');
-        if (manageBtn) manageBtn.textContent = this.t('manageCustomCategories');
+        setText('manageCategoriesBtn', this.t('manageCustomCategories'));
 
-        const catOverlay = document.getElementById('categoryManagerOverlay');
+        const catOverlay = safeGet('categoryManagerOverlay');
         if (catOverlay) {
             const h3 = catOverlay.querySelector('h3');
             if (h3) h3.textContent = this.t('manageCategories');
@@ -4021,20 +3999,17 @@ applyLanguage(lang) {
             const newCatLabel = catOverlay.querySelector('label[for="newCategoryName"]');
             if (newCatLabel) newCatLabel.textContent = this.t('newCategoryLabel');
 
-            const newCatInput = document.getElementById('newCategoryName');
+            const newCatInput = safeGet('newCategoryName');
             if (newCatInput) newCatInput.placeholder = this.t('newCategoryPlaceholder');
-            const newSubCatInput = document.getElementById('newSubcategoryName');
+
+            const newSubCatInput = safeGet('newSubcategoryName');
             if (newSubCatInput) newSubCatInput.placeholder = this.t('expenseSubCategory');
 
-            const saveCatBtn = document.getElementById('saveCategoryBtn');
-            if (saveCatBtn) saveCatBtn.textContent = this.t('add');
-
-            const closeCatBtn = document.getElementById('closeCategoryManager');
-            if (closeCatBtn) closeCatBtn.textContent = this.t('close');
+            setText('saveCategoryBtn', this.t('add'));
+            setText('closeCategoryManager', this.t('close'));
         }
 
-        // Traduci i bottoni dei tab
-        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabButtons = safeQueryAll('.tab-btn');
         if (tabButtons.length >= 7) {
             tabButtons[0].textContent = this.t('tabHome');
             tabButtons[1].textContent = this.t('tabIncomes');
@@ -4045,177 +4020,140 @@ applyLanguage(lang) {
             tabButtons[6].textContent = this.t('tabTools');
         }
 
-                        // Traduzioni per skip rows
-        const skipRowsLabel = document.getElementById('skipRowsLabel');
-        if (skipRowsLabel) skipRowsLabel.textContent = this.t('skipRowsLabel');
-        const headerRowManualLabel = document.getElementById('headerRowManualLabel');
-        if (headerRowManualLabel) headerRowManualLabel.textContent = this.t('headerRowManualLabel');
-        const skipHelp = document.getElementById('skipHelp');
-        if (skipHelp) skipHelp.textContent = this.t('skipHelp');
+        setText('skipRowsLabel', this.t('skipRowsLabel'));
+        setText('headerRowManualLabel', this.t('headerRowManualLabel'));
+        setText('skipHelp', this.t('skipHelp'));
 
-        // ===== NUOVE TRADUZIONI AGGIUNTIVE =====
-        
-        // 1. WIDGET RISPARMIO
-        const savingsWidgetTitle = document.getElementById('savingsWidgetTitle');
+        const savingsWidgetTitle = safeGet('savingsWidgetTitle');
         if (savingsWidgetTitle) savingsWidgetTitle.textContent = this.t('savingsWidgetTitle');
-        
-        const targetDate = document.getElementById('targetDate');
-        if (targetDate && (targetDate.textContent === 'Mai' || targetDate.textContent === 'Never' || targetDate.textContent === 'Nunca' || targetDate.textContent === 'Jamais')) {
+
+        const targetDate = safeGet('targetDate');
+        if (targetDate && ['Mai', 'Never', 'Nunca', 'Jamais'].includes(String(targetDate.textContent || '').trim())) {
             targetDate.textContent = this.t('never');
         }
-        
-        const percentLabels = document.querySelectorAll('.slider-labels span');
+
+        const percentLabels = safeQueryAll('.slider-labels span');
         if (percentLabels.length >= 3) {
             percentLabels[0].textContent = this.t('percent0');
             percentLabels[1].textContent = this.t('percent15');
             percentLabels[2].textContent = this.t('percent30');
         }
-        
-        const savingsPotInputLabel = document.getElementById('savingsPotInputLabel');
-        if (savingsPotInputLabel) savingsPotInputLabel.textContent = this.t('savingsPotInputLabel');
-        
-        const currentPlanTitle = document.getElementById('currentPlanTitle');
-        if (currentPlanTitle) currentPlanTitle.innerHTML = this.t('currentPlan');
-        
-        const currentPlanMessage = document.getElementById('currentPlanMessage');
-        if (currentPlanMessage) currentPlanMessage.innerHTML = this.t('currentPlanMessage');
 
-        const wiseScoreHomeTitle = document.getElementById('wiseScoreHomeTitle');
+        setText('savingsPotInputLabel', this.t('savingsPotInputLabel'));
+        setText('currentPlanTitle', this.t('currentPlan'), true);
+        setText('currentPlanMessage', this.t('currentPlanMessage'), true);
+
+        const wiseScoreHomeTitle = safeGet('wiseScoreHomeTitle');
         if (wiseScoreHomeTitle) wiseScoreHomeTitle.textContent = 'WiseScore™';
-        const pillarNames = document.querySelectorAll('.wise-pillar-name');
+
+        const pillarNames = safeQueryAll('.wise-pillar-name');
         if (pillarNames.length >= 3) {
             pillarNames[0].textContent = this.uiText('wisePillarStability');
             pillarNames[1].textContent = this.uiText('wisePillarDiscipline');
             pillarNames[2].textContent = this.uiText('wisePillarResilience');
         }
-        const reportToolsCard = document.getElementById('reportToolsCard');
+
+        const reportToolsCard = safeGet('reportToolsCard');
         if (reportToolsCard) {
             const h2 = reportToolsCard.querySelector('h2');
             const note = reportToolsCard.querySelector('.chart-note');
             if (h2) h2.textContent = this.uiText('reportToolsTitle');
             if (note) note.textContent = this.uiText('reportToolsNote');
         }
-        const openReportBtn = document.getElementById('openReportBtn');
-        if (openReportBtn) openReportBtn.textContent = this.uiText('reportOpen');
-        const refreshReportBtn = document.getElementById('refreshReportBtn');
-        if (refreshReportBtn) refreshReportBtn.textContent = this.uiText('reportRefresh');
-        const reportGeneratedAt = document.getElementById('reportGeneratedAt');
-        if (reportGeneratedAt && !reportGeneratedAt.dataset.dynamicReportTs) reportGeneratedAt.textContent = this.uiText('reportCurrentPeriodSummary');
-        const reportModalHeader = document.querySelector('#reportModal .report-modal-header h3');
+
+        setText('openReportBtn', this.uiText('reportOpen'));
+        setText('refreshReportBtn', this.uiText('reportRefresh'));
+
+        const reportGeneratedAt = safeGet('reportGeneratedAt');
+        if (reportGeneratedAt && !reportGeneratedAt.dataset.dynamicReportTs) {
+            reportGeneratedAt.textContent = this.uiText('reportCurrentPeriodSummary');
+        }
+
+        const reportModalHeader = safeQuery('#reportModal .report-modal-header h3');
         if (reportModalHeader) reportModalHeader.textContent = this.uiText('reportToolsTitle');
-        const refreshReportModalBtn = document.getElementById('refreshReportModalBtn');
-        if (refreshReportModalBtn) refreshReportModalBtn.textContent = this.uiText('reportRefresh');
-        const exportReportPdfBtn = document.getElementById('exportReportPdfBtn');
-        if (exportReportPdfBtn) exportReportPdfBtn.textContent = this.uiText('exportPdf');
-        const closeReportBtn = document.getElementById('closeReportBtn');
-        if (closeReportBtn) closeReportBtn.textContent = this.uiText('close');
-        const savingsTitle = document.getElementById('savingsTitle');
-        if (savingsTitle) savingsTitle.textContent = this.t('savings');
+
+        setText('refreshReportModalBtn', this.uiText('reportRefresh'));
+        setText('exportReportPdfBtn', this.uiText('exportPdf'));
+        setText('closeReportBtn', this.uiText('close'));
+        setText('savingsTitle', this.t('savings'));
+
         if (savingsWidgetTitle) savingsWidgetTitle.textContent = this.uiText('savingsWidgetTitleFixed');
-        
-                // 2. IMPOSTAZIONI - FORMATO DATE FISSE
-        const fixedDaysLabel = document.querySelector('label[for="dateFormatDays"] span');
-        if (fixedDaysLabel) fixedDaysLabel.textContent = this.t('fixedDateFormatDays');
-        
-        const fixedMonthsLabel = document.querySelector('label[for="dateFormatMonths"] span');
-        if (fixedMonthsLabel) fixedMonthsLabel.textContent = this.t('fixedDateFormatMonths');
-        
-        const helpText = document.getElementById('fixedDateFormatHelp');
-        if (helpText) helpText.textContent = this.t('fixedDateFormatHelp');
-        
-        // 3. PULSANTI BACKUP
-        const backupLabel = document.getElementById('backupLabel');
-        if (backupLabel) backupLabel.textContent = this.t('backupLabel');
-        
-        const backupBtn = document.getElementById('backupBtn');
+
+        setSelectorText('label[for="dateFormatDays"] span', this.t('fixedDateFormatDays'));
+        setSelectorText('label[for="dateFormatMonths"] span', this.t('fixedDateFormatMonths'));
+        setText('fixedDateFormatHelp', this.t('fixedDateFormatHelp'));
+        setText('backupLabel', this.t('backupLabel'));
+
+        const backupBtn = safeGet('backupBtn');
         if (backupBtn) backupBtn.innerHTML = this.t('backupButton');
-        
-        const restoreBtn = document.getElementById('restoreBtn');
+
+        const restoreBtn = safeGet('restoreBtn');
         if (restoreBtn) restoreBtn.innerHTML = this.t('restoreButton');
-        
-        // 4. RICERCA
-        const searchInput = document.getElementById('searchExpenses');
+
+        const searchInput = safeGet('searchExpenses');
         if (searchInput) searchInput.placeholder = this.t('searchPlaceholder');
-        
-        const allCategoriesOption = document.querySelector('#searchCategory option[value="all"]');
+
+        const allCategoriesOption = safeQuery('#searchCategory option[value="all"]');
         if (allCategoriesOption) allCategoriesOption.textContent = this.t('allCategories');
-        
-        const resetSearchBtn = document.getElementById('resetSearchBtn');
+
+        const resetSearchBtn = safeGet('resetSearchBtn');
         if (resetSearchBtn) resetSearchBtn.innerHTML = this.t('clearFilters');
-        
-        // 5. RIEPILOGO IN ALTO
-        const savingsPotLabel = document.getElementById('savingsPotLabel');
-        if (savingsPotLabel) savingsPotLabel.textContent = this.t('savingsPotLabel');
-        const paceLabel = document.getElementById('spendingPaceLabel');
-        if (paceLabel) paceLabel.textContent = this.t('spendingPace');
-        if (document.getElementById('remainingLabel')) document.getElementById('remainingLabel').textContent = this.t('remaining');
-        if (document.getElementById('daysLabel')) document.getElementById('daysLabel').textContent = this.t('days');
-        if (document.getElementById('budgetLabel')) document.getElementById('budgetLabel').textContent = this.t('budget');
-        this.updateWiseForecastHome();
-        
-        // 6. IMPORT AVANZATO - EXCEL
-        const excelSheetLabel = document.getElementById('excelSheetLabel');
-        if (excelSheetLabel) excelSheetLabel.textContent = this.t('excelSheet');
-        
-        const excelHeaderLabel = document.getElementById('excelHeaderLabel');
-        if (excelHeaderLabel) excelHeaderLabel.textContent = this.t('excelHeaderRow');
-        
-        const excelSheetSelect = document.getElementById('excelSheet');
+
+        setText('savingsPotLabel', this.t('savingsPotLabel'));
+        setText('spendingPaceLabel', this.t('spendingPace'));
+
+        if (typeof this.updateWiseForecastHome === 'function') {
+            try { this.updateWiseForecastHome(); } catch (_e) {}
+        }
+
+        setText('excelSheetLabel', this.t('excelSheet'));
+        setText('excelHeaderLabel', this.t('excelHeaderRow'));
+
+        const excelSheetSelect = safeGet('excelSheet');
         if (excelSheetSelect) {
             const placeholderOption = excelSheetSelect.querySelector('option[value=""]');
             if (placeholderOption) placeholderOption.textContent = this.t('excelSheetPlaceholder');
         }
-        
-        const excelHeaderSelect = document.getElementById('excelHeaderRow');
-        if (excelHeaderSelect) {
-            const options = excelHeaderSelect.options;
-            if (options.length >= 4) {
-                for (let i = 0; i < options.length; i++) {
-                    if (options[i].value === "-1") {
-                        options[i].text = this.t('rowNone');
-                    }
-                }
-            }
+
+        setOptionTextByValue('excelHeaderRow', '-1', this.t('rowNone'));
+        setText('excelHelp', this.t('excelHelp'));
+
+        if (typeof this.updateIncomeList === 'function') {
+            try { this.updateIncomeList(); } catch (_e) {}
         }
-        
-        const excelHelp = document.getElementById('excelHelp');
-        if (excelHelp) excelHelp.textContent = this.t('excelHelp');
-
-        this.updateIncomeList();
-        this.updateFixedExpensesList();
-        this.updateVariableExpensesList();
-        this.updateFixedStatusHome();
-        this.updateChart();
-
-        this.updateAllCategorySelects();
-        const catOverlayOpen = document.getElementById('categoryManagerOverlay');
-        if (catOverlayOpen && catOverlayOpen.style.display === 'flex') this.refreshCategoryList();
-// Traduci il pulsante "Forse dopo" nel modal Premium
-const closePremiumBtn = document.getElementById('closePremiumBtn');
-if (closePremiumBtn) {
-    closePremiumBtn.textContent = this.t('maybeLater');
-}
-if (typeof this.normalizePremiumModalUI === 'function') {
-    this.normalizePremiumModalUI();
-}
-
-// Traduci lo span del pulsante Aggiungi categoria
-const addCategoryBtnText = document.getElementById('addCategoryBtnText');
-if (addCategoryBtnText) {
-    addCategoryBtnText.textContent = this.t('add');
-}
-
-// Traduci le opzioni del select delle righe intestazione Excel
-const excelHeaderSelectEl = document.getElementById('excelHeaderRow');  // CAMBIATO IL NOME
-if (excelHeaderSelectEl) {
-    const options = excelHeaderSelectEl.options;
-    if (options.length >= 4) {
-        // Traduci "None (auto)"
-        for (let i = 0; i < options.length; i++) {
-            if (options[i].value === "-1") {
-                options[i].text = this.t('rowNone');
-            }
+        if (typeof this.updateFixedExpensesList === 'function') {
+            try { this.updateFixedExpensesList(); } catch (_e) {}
         }
+        if (typeof this.updateVariableExpensesList === 'function') {
+            try { this.updateVariableExpensesList(); } catch (_e) {}
+        }
+        if (typeof this.updateFixedStatusHome === 'function') {
+            try { this.updateFixedStatusHome(); } catch (_e) {}
+        }
+        if (typeof this.updateChart === 'function') {
+            try { this.updateChart(); } catch (_e) {}
+        }
+        if (typeof this.updateAllCategorySelects === 'function') {
+            try { this.updateAllCategorySelects(); } catch (_e) {}
+        }
+
+        const catOverlayOpen = safeGet('categoryManagerOverlay');
+        if (catOverlayOpen && catOverlayOpen.style.display === 'flex' && typeof this.refreshCategoryList === 'function') {
+            try { this.refreshCategoryList(); } catch (_e) {}
+        }
+
+        setText('closePremiumBtn', this.t('maybeLater'));
+
+        if (typeof this.normalizePremiumModalUI === 'function') {
+            try { this.normalizePremiumModalUI(); } catch (_e) {}
+        }
+
+        setText('addCategoryBtnText', this.t('add'));
+        setOptionTextByValue('excelHeaderRow', '-1', this.t('rowNone'));
+
+        console.log('✅ applyLanguage completata senza errori');
+    } catch (error) {
+        console.error('❌ applyLanguage crash prevenuto:', error);
     }
 }
 
